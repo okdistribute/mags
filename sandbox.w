@@ -1,0 +1,349 @@
+#!chezscheme
+(@chezweb)
+
+"\\centerline{
+\\titlef Sandbox Primitives}
+\\bigskip
+\\centerline{Aaron W. Hsu {\\tt <arcfide@sacrideo.us>}}
+\\centerline{Karissa R. McKelvey {\\tt <krmckelv@indiana.edu>}}
+\\medskip
+\\centerline{\\today}\\par
+\\bigskip\\rendertoc\\par
+\\vfill
+\\noindent
+Copyright $\\copyright$ 2010 Aaron W. Hsu {\\tt <arcfide@sacrideo.us>}, 
+Karissa R. McKelvey {\\tt <krmckelv@indiana.edu>}
+\\medskip\\noindent
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+\\medskip\\noindent
+THE SOFTWARE IS PROVIDED ``AS IS'' AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.\\par
+"
+
+(@l "This library contains various procedures for
+constructing a sandbox environment. This sandbox is in essence a
+safe testing environment for which we can do multiple things:
+
+\\unorderedlist
+\\li Evaluate expressions in a safe environment.
+\\li Identify a procedure that could use an expression that would
+have have implications we want to avoid. We can |flag| these as
+expressions. You can see how this works in the section titled
+Creating Sandboxes. 
+\\li Identify an infinite loop or
+inefficient procedure.
+\\endunorderedlist"
+
+(mags sandbox)
+(export 
+  run-sandbox-tests
+  &sandbox
+  &timeout
+  &illegal-term
+  &sandbox-i/o-error
+  &unbound-term
+  sandbox-condition
+  sandbox-condition?
+  timeout
+  timeout?
+  illegal-term
+  illegal-term?
+  sandbox-i/o-error
+  sandbox-i/o-error?
+  unbound-term
+  unbound-term?
+  timeout-engine
+  sandbox-i/o-error-port
+  illegal-term-name
+  eval/sandbox
+  load/sandbox
+  library/sandbox
+  flag import
+  sandbox)
+(import (chezscheme) (srfi :64))
+
+(@* "Overview"
+"THis is an overview for the sandbox environment"
+)
+(@* "Condition Hierarchy"
+"These conditions are raised when certain problems arise in the
+evaluation of terms inside the sandbox environment. There are four
+conditions as follows: 
+
+\\unorderedlist
+\\li |&sandbox| (the parent of all subsequent conditions)
+\\li |&timeout|
+\\li |&sandbox-i/o-error|
+\\li |&illegal-term|
+\\endunorderedlist
+
+\\noindent
+Each has its
+own special occasion for use, as well as constructors, accessors, and
+predicates.
+
+|&sandbox| is the parent condition for all of the following
+sandbox conditions. The constructor is |sandbox-condition| and
+predicate |sandbox-condition?|. It takes no arguments."
+
+(@c
+(define-condition-type 
+  &sandbox
+  &condition
+  sandbox-condition
+  sandbox-condition?)
+))
+
+(@ "|&timeout| is a child condition of the parent |&sandbox|. This
+condition is raised when the evaluation of a certain procedure runs
+out of time. It takes one argument, |timeout-engine| which represents
+the unique engine from which this timeout condition was raised. 
+Predicate: |timeout?|, Constructor: |(timeout timeout-engine)|."
+
+(@c
+(define-condition-type
+  &timeout
+  &sandbox
+  timeout
+  timeout?
+  (engine timeout-engine))
+))
+
+(@ "|&sandbox-i/o-error| is a child condition of the parent type
+|&sandbox|. This condition is raised when there arises an input/output
+error or filesystem error when the sandbox loads or writes files. It
+takes one argument, |sandbox-i/o-error-port|, i.e. the port where
+the error occured.
+Predicate: |sandbox-i/o-error?|, Constructor: |(sandbox-i/o-error port)|."
+
+(@c
+(define-condition-type
+  &sandbox-i/o-error
+  &sandbox
+  sandbox-i/o-error
+  sandbox-i/o-error?
+  (port sandbox-i/o-error-port))
+))
+
+(@ "|&illegal-term| is a child condition of the parent type
+|&sandbox|, This conditions is raised when there arises a term deemed
+illegal that is evaluated in the sandbox. It takes one argument
+|illegal-term-name| that is the term deemed illegal by the sandbox.
+Predicate: |illegal-term?|, Constructor: |(illegal-term name)|."
+
+(@c
+(define-condition-type
+  &illegal-term
+  &sandbox
+  illegal-term
+  illegal-term?
+  (name illegal-term-name))
+))
+
+(@ "|&unbound-term| is a child condition of the parent |&sandbox|. This
+condition is raised when the evaluation of a procedure expected to be found is
+not found in the code within the sandbox. It takes one argument,
+the |unbound-term-name|, the name of the term which was determined to be unbound.
+Predicate: |unbound-term?|, Constructor: |(unbound-term name)|."
+
+(@c
+(define-condition-type
+  &unbound-term
+  &sandbox
+	unbound-term
+	unbound-term?
+  (name unbound-term-name))
+))
+
+(@* "Creating sandboxes"
+"Sandboxes are just libraries, but there are certain expectations
+about sandboxes that suggest another interface to create them.  For
+example, sandboxes generally do not define new bindings; instead, most
+of the time they define some subset of other libraries of code.
+
+In our particular take on sandboxes, we may want the use of certain
+terms (that are normally defined), such as |append|, to raise an error
+as soon as we realize they are being used.  We say that these names
+are flagged.  We have the following syntax to make these things
+easier:
+
+\\medskip\\verbatim
+(library/sandbox name
+  (import imp-spec ...)
+  (flag id ...))
+|endverbatim
+\\medskip
+
+\\noindent
+Here, |imp-spec ...| is a list of any normal R6RS import clause.  The
+|id ...| list is simply a list of identifiers.  The result of
+evaluating the above code is a newly defined library called |name|
+which exports all the bindings exported by the specifications
+|imp-spec ...| as well as a set of identifier syntaxes |id ...| that,
+if invoked, raise an |&illegal-term| condition.  The identifiers in
+the flag clause must not be exported by any |imp-spec ...| clause.
+
+The most interesting aspect of this code is extracting the set of
+exports from a set of import specifications.  This is accomplished
+using environments."
+
+(@> |Compute export list| (capture k imp)
+(datum->syntax #'k
+  (environment-symbols
+    (apply environment
+      (syntax->datum #'(imp (... ...))))))
+))
+
+(@* "Evaluating code within Sandboxes"
+"These procedures aid in the evaluation of expressions or files within
+a given environment-name with a given amount of time in order to spot
+an infinite loop or inefficient proceure. Using the following code, we
+run an engine which returns the value of the expression unless the
+given time runs to zero, in which case it will create and raise a
+|&timeout| condition with the expression name."
+
+(@> |Run Timeout Engine| (capture eng time)
+(eng time
+     (lambda (ticks value) value)
+     (lambda (x) (raise-continuable (timeout x))))
+))
+
+(@ "This is a procedure named |eval/sandbox|. It takes three
+arguments, the expression to evaluate, the environment name (a quoted
+list), and the amount of time allowed. It evaluates the expression in
+a copy of the given environment using |eval| and gives it a time limit
+to evaluate through the use of an engine. If the time expires,
+|eval/sandbox| throws a timeout condition."
+
+(@c
+(define (eval/sandbox exp env time)
+  (let (
+         [eng (make-engine
+               (lambda ()
+                 (parameterize 
+                     ([current-eval 
+                        (lambda (x . ignore) (compile x env))])
+                   (eval exp))))])
+    (@< |Run Timeout Engine| eng time)))
+))
+
+(@ "Here are basic |eval/sandbox| tests"
+(@> |Test eval/sandbox| 
+(test-begin "eval/sandbox")
+(let ()
+  (define sdbx (sandbox '(only (chezscheme) iota)))
+	(test-assert "eval/sandbox iota 5 with 1000000 time" 
+		     (eval/sandbox '(iota 5) sdbx 1000000))
+	(test-error "that eval properly errors when not enough time" 
+		    (eval/sandbox '(iota 100) sdbx 5))
+(test-end "eval/sandbox"))
+))
+
+
+(@ "This procedure, |load/sandbox|, loads a file into a safe
+environment during a given amount of time. It takes three arguments:
+the file to load, the environment to load it in, and the given amount
+of time. It uses the same timeout engine defined above to |eval| each
+expression in the file"
+
+(@c
+(define (load/sandbox file env time)
+  (let (
+      [eng 
+        (make-engine 
+          (lambda ()
+            (parameterize 
+                ([current-eval 
+                   (lambda (x . ignore) (compile x env))])
+              (load file))))])
+    (@< |Run Timeout Engine| eng time)))
+))
+
+(@ "Here are basic |load/sandbox| tests"
+(@> |Test load/sandbox|
+(test-begin "test-load/sandbox")
+(let ()
+  (define file "example_tests/example_a10/c211-lib.ss")
+  (define sdbx (sandbox '(only (chezscheme) iota)))
+  (test-assert "load/sandbox can open c211-lib with 1000 time"))
+(test-end "test-load/sandbox")
+))
+
+
+
+(@ "To create the flagged bindings, we bind each flagged identifier to
+an identifier syntax that does the right sort of raise."
+
+(@> |Define flagged| (capture fid)
+#'(begin 
+  (define-syntax (fid x)
+    (raise (illegal-term 'fid)))
+  (... ...))
+))
+
+(@ "|library/sandbox| does most of the work. It takes a list of
+imports, or terms we want available, and |flags|, terms we don't. It
+takes and loads them into a library to be used in the sandbox."
+
+(@c
+(define-syntax (library/sandbox x)
+  (syntax-case x (import flag)
+    [(k name (import imp ...) (flag fid ...))
+      (with-implicit (k library export)
+        (with-syntax (
+            [(exp ...) (@< |Compute export list| k imp)])
+          #`(library name
+            (export fid ... exp ...)
+            (import imp ...
+              (only (chezscheme) 
+                define-syntax 
+                condition
+                make-message-condition)
+              (only (mags sandbox)
+                illegal-term))
+            #,(@< |Define flagged| fid))))]))
+))
+
+
+(@* "Convienience procedures"
+"A |flag| is recognized by the sandbox as a unwanted procedure that
+should not be permitted in the environment."
+
+(@c
+(define-syntax flag
+  (lambda (x)
+    (errorf #f "misplaced aux keyword ~a"
+      (syntax->datum x))))
+))
+
+(@ "|sandbox| is a small procedure that simply takes a name for an
+environment we want to be used in the sandbox, in effect making it
+mutable. This should be called on any environment that will be passed
+to |eval/sandbox| or |load/sandbox|."
+
+(@c
+(define (sandbox x)
+  (copy-environment (environment x)))
+))
+
+(@ "Following is the test suite for this library."
+(@c
+(define (run-sandbox-tests)
+  (parameterize ([test-runner-current (test-runner-simple)])
+    (@< |Test eval/sandbox|)
+    (@< |Test load/sandbox|)))
+))
+)
+
+
+       
+
+              
+       

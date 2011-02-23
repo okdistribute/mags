@@ -1,0 +1,8 @@
+The following programs failed one or more tests:
+
+  Problem 1: pick-one-at-random
+  Problem 3: insert
+  Problem 4: free-vars
+  Problem 6.c: list-bst
+  Problem 6.d: tree-sort
+  Problem 7.a: sort-by-weight

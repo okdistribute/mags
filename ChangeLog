@@ -1,0 +1,13 @@
+2010
+9-19: created a new file, sandbox.w, which contains eval/sandbox. working on load/sandbox. 
+9-20: updated eval/sandbox, works as intended. load/sandbox created but not tested
+9-24: finished primitive sandbox, needs more documentation
+10-10: finished sandboxes/io.w 
+10-30: redefined test-* predicate specfiers for engined versions. Created define-equality-test
+11-10: created test runner-quiet
+11-30: grade macro finished
+12-5: created test-suite macro
+12-15: autogrades as intended on tests
+2011
+1-23: when no name is provided to a test-<equality-pred> test, it pretty-prints the tested expression
+2-17: changed the path of sandboxes/io.w to simply io.w. 

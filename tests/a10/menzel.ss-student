@@ -1,0 +1,15 @@
+Results for Assignment 10 
+
+1:pick-one-at-random: Incorrect 
+2:Plug-in: Incorrect 
+3:insert: Incorrect 
+4:free-vars: Incorrect 
+5.a:tree-map: Incorrect 
+5.b:tree-clone: Incorrect 
+Assignment 10:6:pick-one-at-random:7:Plug-in: Incorrect 
+8:insert: Incorrect 
+9:free-vars: Incorrect 
+10.a:tree-map: Incorrect 
+10.b:tree-clone: Incorrect 
+There was an unexpected error.
+  Exception in load: file "a10.ss" not found in source directories
