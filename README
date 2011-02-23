@@ -1,0 +1,11 @@
+README
+You need chezweb and (srfi :64) to use this autograder.
+
+grade.w: mags grader
+runners.w: (srfi :64) test runners
+sandbox.w: sandbox framework
+io.w: sandbox i/o framework
+
+
+load.w: loads and imports all autograder files
+grade-test.w: tests with output to tests/a10/submission.grade
