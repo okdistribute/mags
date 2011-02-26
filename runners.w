@@ -170,12 +170,13 @@ functions that cases.
         [passed-count 0]
         [failed-count 0]
         [missing-count 0]
-        [resulted? #f])
+        [resulted? #f]
+        [failed? #f])
     (@< |On-group-begin quiet| runner port student-port suite-name)
-    (@< |On-test-end quiet| runner port student-port failed-count missing-count resulted?)
+    (@< |On-test-end quiet| runner port student-port failed-count missing-count resulted? failed?)
     (@< |On-bad-count| runner port)
     (@< |On-bad-end-name| runner port)
-    (@< |On-group-end quiet| runner port student-port passed-count failed-count)
+    (@< |On-group-end quiet| runner passed-count failed-count failed?)
     (@< |On-final quiet| 
         runner port student-port passed-count failed-count missing-count)
     runner))
@@ -298,7 +299,7 @@ is printed in the result of a pass.
  When no name is provided to a test-<equality-pred> test, |test-runner-quiet|
 pretty-prints the full tested expression."
 
-(@> |On-test-end quiet| (capture runner port student-port failed-count missing-count resulted?)
+(@> |On-test-end quiet| (capture runner port student-port failed-count missing-count resulted? failed?)
 (test-runner-on-test-end! runner
   (lambda (runner)
 (let ([result-kind (test-result-kind runner)]
@@ -308,42 +309,34 @@ pretty-prints the full tested expression."
       [test-name (@< |Truncate test-name| (test-runner-test-name runner))])
   (cond
    [was-error?
-   (unless (equal? (test-runner-aux-value runner) 'error)
-     (begin 
-       (@< |Print result header| student-port 'error resulted?)
-       (@< |Print full problem| runner port student-port resulted?)
-       (@< |Print error| port runner failed-count missing-count)))]
+   (unless failed?
+     (@< |Print result header| student-port 'error resulted?)
+     (@< |Print full problem| runner port student-port resulted?)
+     (@< |Print error| port runner failed-count missing-count)
+     (set! failed? #t))]
    [(or (equal? result-kind 'xpass)
         (equal? result-kind 'fail))
-    (begin
-      (unless (equal? (test-runner-aux-value runner) 'fail)
-       (@< |Print result header| student-port 'fail resulted?)
-       (@< |Print full problem| runner port student-port resulted?)
-        (format port " FAILED ~%   Test:     ~d~%   Expected: ~d~%   Actual:   ~d~%" 
-                test-name expected actual)
-        (test-runner-aux-value! runner 'fail)))]
+    (unless failed?
+      (@< |Print result header| student-port 'fail resulted?)
+      (@< |Print full problem| runner port student-port resulted?)
+      (format port " FAILED ~%   Test:     ~d~%   Expected: ~d~%   Actual:   ~d~%" 
+              test-name expected actual)
+      (test-runner-aux-value! runner 'fail)
+      (set! failed? #t))]
    [(test-passed?) (test-runner-aux-value! runner 'pass)]))))
 ))
 
 (@ "At the end of each group, we must update the passed and failed count
 as well as reset the |test-runner-aux-value| so that the next test-group
 can be recorded correctly as a problem set."
-(@> |On-group-end quiet| (capture runner port student-port passed-count failed-count)
+(@> |On-group-end quiet| (capture runner passed-count failed-count failed?)
 (test-runner-on-group-end! runner
-  (lambda (runner)         
-    (when (equal? (test-runner-aux-value runner) 'pass)
-      (begin
-        (set! passed-count (add1 passed-count))
-        (test-runner-aux-value! runner #f)))
-    (unless (test-result-ref runner 'was-error?)
-      (when (equal? (test-runner-aux-value runner) 'fail)
-        (begin
-          (set! failed-count (add1 failed-count))
-          (test-runner-aux-value! runner #f))))
-    (when (equal? (test-runner-aux-value runner) 'error)
-      (begin
-        (set! failed-count (add1 failed-count))
-        (test-runner-aux-value! runner #f)))))
+  (lambda (runner)     
+    (cond
+      [failed? (set! failed-count (add1 failed-count))]
+      [(equal? (test-runner-aux-value runner) 'pass) (set! passed-count (add1 passed-count))])
+    (test-runner-aux-value! runner #f)
+    (set! failed? #f)))
 ))
 
 (@ "When the group begins, we need to print the proper headers. If its

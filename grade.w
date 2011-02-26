@@ -1,6 +1,5 @@
 #!chezscheme
 (@chezweb)
-
 "\\centerline{ 
 \\titlef Grading Scheme Submissions} 
 \\bigskip 
@@ -705,26 +704,26 @@ error| chunk."
       [else (error 'grade "unexpected output type, expected file or port"
              p)]))
   (let ([student-port (get-port s-port)]       
-    [port (get-port p-port)]
+        [port (get-port p-port)]
         [sndbx (sandbox sandbox-name)])
-      (call-with-current-continuation
-        (lambda (return)
-          (with-exception-handler
-       (@< |Unchecked error handler| return)
-       (lambda ()  
-         (load/sandbox submission sndbx time-limit)
-         (@< |Set appropriate test runner| port student-port)
-         (parameterize ([counter (new-counter)]
-                [source-directories
-                 (cons
-                  (path-parent test-file)
-                  (source-directories))]
-                [user-sandbox sndbx])
-        (load test-file
+      (call/cc 
+        (lambda (return) 
+          (with-exception-handler 
+           (@< |Unchecked error handler| return port student-port) 
+           (lambda ()  
+             (load/sandbox submission sndbx time-limit)
+             (@< |Set appropriate test runner| port student-port)
+             (parameterize ([counter (new-counter)]
+                            [source-directories
+                             (cons
+                              (path-parent test-file)
+                              (source-directories))]
+                            [user-sandbox sndbx])
+            (load test-file
               (let ([env (copy-environment 
                   (environment '(chezscheme)
-                           '(mags grade) 
-                           '(mags sandbox)))])
+                               '(mags grade) 
+                               '(mags sandbox)))])
             (lambda (e) (eval e env))))))))))) 
 ))
 
@@ -776,20 +775,24 @@ or filenames that were passed to |grade| from the user."
 submission will fail to load with some sort of problem or another. In
 these cases, we want to print out an error that indicates this."
 
-(@> |Unchecked error handler| (capture return)
+(@> |Unchecked error handler| (capture return p sp)
 (lambda (c)
-  (printf "There was an unexpected error:~%  ")
   (cond
    [(illegal-term? c) 
-    (format (current-output-port) "You should not be using ~a" 
-        (illegal-term-name c))]    
+    (format p "Student uses illegal term ~a" 
+            (illegal-term-name c))
+    (format sp "You should not be using ~a" 
+            (illegal-term-name c))]    
    [(timeout? c) 
-    (begin
-      (format (current-output-port)  
-          "   Submission failed to load in time. Make sure that the (current-time-limit) is set to its default value.~%")
-      (return))]
+    (format (current-output-port)  
+              "   Submission failed to load in time. Make sure that the (current-time-limit) is set to its default value.~%")
+    (return)]
+   [(warning? c) 
+    (format p "There is a warning in the student file.")
+    (format sp "There is a warning in your file. Please fix the bugs in your file until the file loads with no messages.")]
    [else  
-    (display-condition c (current-output-port))
+    (display-condition c p)
+    (display-condition c sp)
     (return)])
   (display "\n\n"))
 ))
