@@ -509,7 +509,7 @@ against it within a scheme engine.  This way, we can grade an entire
 submission, even if it finds an infinite loop on one of the test
 cases. The engine will signal the error and fail the test.
 
-\\medskip\\noindnet
+\\medskip\\noindet
 When defining a new test, we need to create an expression
 with the given |test-expr|, the name the new test will take, and
 either a new |time-limit| or |current-time-limit|. If the |test-expr|
@@ -528,13 +528,13 @@ improved.
 (define-syntax test-with-engine
   (syntax-rules ()
     [(_ expr)
-     ((make-engine (lambda () test-expr))
+     ((make-engine (lambda () expr))
       time-limit 
       (lambda (t v) v) 
       (lambda (c) (raise (timeout c))))]))
-  (if name
-      (test-pred pred? name expected (test-with-engine test-expr))
-      (test-pred pred? expected (test-with-engine test-expr)))
+(if name
+    (test-pred pred? name expected (test-with-engine test-expr))
+    (test-pred pred? expected (test-with-engine test-expr)))
 ))
 
 (@ "Here are basic tests for the above: we define a new test called
@@ -739,7 +739,7 @@ error| chunk."
      (grade %internal (submission pp sp) rest ...)]
     [(_ submission rest ...) (string? (syntax->datum #'submission))
      (grade %internal
-       (submission submission (string-append submission "-student"))
+       (submission (string-append submission ".grade") (string-append submission ".mail"))
        rest ...)]
     [(_ %internal (submission pp sp))
      (%grade submission pp sp 
@@ -782,19 +782,22 @@ these cases, we want to print out an error that indicates this."
     (format p "Student uses illegal term ~a" 
             (illegal-term-name c))
     (format sp "You should not be using ~a" 
-            (illegal-term-name c))]    
+            (illegal-term-name c))
+    (display "\n\n")]    
    [(timeout? c) 
-    (format (current-output-port)  
-              "   Submission failed to load in time. Make sure that the (current-time-limit) is set to its default value.~%")
+;    (format (current-output-port)  
+;            "   Submission failed to load in time. Make sure that the (current-time-limit) is set to its default value.~%"    )
     (return)]
    [(warning? c) 
-    (format p "There is a warning in the student file.")
-    (format sp "There is a warning in your file. Please fix the bugs in your file until the file loads with no messages.")]
-   [else  
+;    (format p "There is a warning in the student file.")
+;    (format sp "There is a warning in your file. Please fix the bugs in your file until the file loads with no messages.")
+    (return)]
+   [else
+;    (format sp "There is a load error in your file. Please fix or comment out the errors until the file loads with no messages.\n")
     (display-condition c p)
     (display-condition c sp)
-    (return)])
-  (display "\n\n"))
+    (display "\n")
+    (return)]))
 ))
 
 (@ "The arguments passed to |grade| must satisfy the following check:"
@@ -897,9 +900,9 @@ procedures are defined as in order to indentify them during grading."
     [(_ id ...)
      (begin
        (define id
-     (guard (x [(condition? x) (unbound id)]
-           [else x])
-        (eval 'id (user-sandbox))))
+         (guard (x [(condition? x) (unbound id)]
+                   [else x])
+                (eval 'id (user-sandbox))))
        ...)]))
 ))
 
