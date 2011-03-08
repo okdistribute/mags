@@ -277,15 +277,16 @@ expression in the file"
 ))
 
 
-
-(@ "To create the flagged bindings, we bind each flagged identifier to
-an identifier syntax that does the right sort of raise."
+(@
+"A flagged binding is one that a student should not be using, and
+that we want to explicitly check for, catch, and report. We do this by
+making the binding a macro that always expands into an error."
 
 (@> |Define flagged| (capture fid)
-#'(begin 
-  (define-syntax (fid x)
-    (raise (illegal-term 'fid)))
-  (... ...))
+#'(begin
+    (define-syntax (fid x)
+      #'(raise (illegal-term 'fid)))
+    (... ...))
 ))
 
 (@ "|library/sandbox| does most of the work. It takes a list of
