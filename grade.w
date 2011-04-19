@@ -13,7 +13,7 @@
 Copyright $\\copyright$ 2010 Aaron W. Hsu {\\tt <arcfide@sacrideo.us>}, 
 Karissa R. McKelvey {\\tt <krmckelv@indiana.edu>} 
 \\medskip\\noindent 
-Permission to se, copy, modify, and distribute this software for any purpose with or
+Permission to see, copy, modify, and distribute this software for any purpose with or
 without fee is hereby granted, provided that the above copyright
 notice and this permission notice appear in all copies.
 \\medskip\\noindent 
@@ -28,12 +28,12 @@ PERFORMANCE OF THIS SOFTWARE.\\par
 "
 
 (@l
-"The |(mags grade)| library implements the top-level functionality for
-grading assignment submissions based on SRFI 64 style test suites.
-The library serves two purposes.  Firstly, it provides a set of
-procedures to use in test suites and auto-grader files.  Secondly, it
-xprovides fairly flexible means of running those tests on code
-files."
+"This library implements the top-level functionality for grading
+assignment submissions based on SRFI 64 style test suites.  The
+library serves two purposes.  Firstly, it provides a easy-to-use
+language to aid in the creation and deployment of test suites and
+problem sets.  Secondly, it provides flexible means of running those
+tests on scheme code files."
 
 (mags grade)
 (export
@@ -62,10 +62,10 @@ files."
 (import
   (chezscheme)
   (except 
-   (rename (srfi :64) 
+   (rename (srfi :64)
+           (test-assert srfi:test-assert)
            (test-group srfi:test-group)
            (test-runner-current current-test-runner))
-   test-assert
    test-equal
    test-eqv
    test-eq)
@@ -82,23 +82,23 @@ First, let's look at the various procedures and discuss each one.
 This is the main syntax that calls the grading system on a specific 
 submission.
 
-\\medskip \\noindent {\\tt test-$\\lbrace$suite,group,assert,equal,eqv,eq,begin,end,%
-entry$\\rbrace$}
+\\medskip \\noindent {\\tt test-$\\lbrace$suite,group,entry,assert,equal,set,%
+$\\rbrace$}
 
 These procedures are an extended vocabulary for test suites.
-It is based directly on the SRFI 64 model and uses SRFI 64 
-underneath the hood.
+They are based directly on the SRFI 64 model and use SRFI 64 
+as the basic framework for test reporting.
 
 \\medskip \\noindent {\\tt test-runner-*}
 
 These are specific parameters and constants for configuring how the 
-tests are displayed as well as allowing detailed control over 
+tests are reported as well as allowing detailed control over 
 exactly how the testing system handles each test result.
 
 \\medskip \\noindent {\\tt define-equality-test}
 
-This allows user defined equality metrics to be created, such as 
-equivalent or custom versions of |test-equal| and its ilk.
+This procedure allows user-defined equality predicates to be used
+during testing, such as equivalent or custom versions of |test-equal|.
 
 \\medskip \\noindent {\\tt current-*}
 
@@ -108,7 +108,7 @@ These are procedures used to configure the default behavior of
 \\medskip \\noindent {\\tt define-from-submission}
 
 This is a special syntax used to grab bindings out from the 
-student's code environment.
+submission's code environment.
 
 \\medskip \\noindent {\\tt formatters}
 
@@ -116,139 +116,165 @@ This is a parameter that enables custom control over how the
 auto-numbering of assignments is formatted and displayed.
 
 \\medskip
-The exact documentation for each specific export is documented where
-that procedure or macro is defined. 
-However, the first few sections do not contain any code and exist 
-solely for exposition on the basic workings of the program.
-They focus on examples and higher-level overview material rather 
-than the exact features and behavior for each procedure.
-Some users may be able to get by entirely on the content of the 
-first few sections, but it is expected that users will read the 
-documentation for each individual procedure or macro that they 
-intend to use, and not just the examples and lighter descriptions
-in the front of this document.")
 
-(@* "Auto-numbering assignment problems"
-"The macro |test-suite| creates assignments from files that contain
-(srfi :64) test cases.  Each string represents a file in the
-|(cd)|.  Here is a quick example of how |test-suite| is
-used: 
-\\medskip \\verbatim
+The exact documentation for each proecdure or macro is
+documented where it is defined.  However, the first few sections
+do not contain any code, and exist solely for an exposition on the basic
+workings of the program. They focus on examples and higher-level
+overview material rather than the exact features and behavior for each
+procedure.
+
+\\medskip
+Some users may be able to get by entirely on the content
+of the first few sections, but it is preferred to read the
+documentation for each individual procedure or macro that you intend
+to use, and not just the examples and lighter descriptions in the
+next few following sections.")
+
+(@* "An Example Assignment"
+"The following few sections go into a high-level overview of
+the process of creating an assignment, by example. For the example
+assignment, each problem set needs to be created as a separate file.
+
+\\medskip
+We then create a file for the assignment, \"a10.ss\", which will simply list
+these files in a |test-suite|.
+Having each problem set separated into its own file allows
+you to store them and use them in different assignments or semesters,
+in order to keep a library of problem sets. You can then easily create
+and modify assignments by modifying just one file, never having to
+look at the test cases once you have created them!
+
+\\medskip
+Note that this is not how it needs to be done; your tests
+can simply be ran by |mags| in a simple |test-group|. However, we want
+to show the full power of the library by this example.
+
+\\medskip
+ The files containing the test cases contain a |test-group|
+which has many |test-*| statements.  We call these |Problem Sets|.
+"
+)
+
+(@* "Problem Sets"
+"A 'problem set', is a set of test cases contained within a
+|test-group|.  We will be creating a problem set for |insert| in this
+section.
+
+\\medskip
+Insert takes a relation, the item to insert, and a list and inserts
+that item according to the given relation.  Here is an example of our
+problem-set, \"insert.ps\":
+
+\\medskip
+\\verbatim
+(test-group \"insert\"
+  (test-equal \"middle, increasing\" '(1 3 5 6 7 9 11) (insert < 6 '(1 3 5 7 9 11)))
+  (test-equal '(5 0 -1 -2 -5) (insert > 5 '(0 -1 -2 -5)))
+  (test-equal '(0 -1 -2 -4 -5) (insert > -4 '(0 -1 -2 -5)))
+  (test-equal '(0 -1 -2 -5 -7) (insert > -7 '(0 -1 -2 -5)))
+  (test-equal '(0 1 2 3 4 6) (let ([ls '(0 1 2 3 4)])
+                               (insert < 6 ls))))
+|endverbatim
+
+\\medskip
+\\noindent
+In the unnamed |test-equal| test cases, the name would be auto-generated
+by |mags|, becoming a |pretty-print| of the full tested expression. Here
+is an example of this:
+\\medskip
+\\verbatim
+  (test-equal '(1 3 5 6) (insert < 6 '(1 3 5))) becomes
+  (test-equal \"(insert < 6 '(1 3 5))\" '(1 3 5 6) (insert < 6 '(1 3 5)))
+|endverbatim
+\\medskip
+It is important that you check in the later sections about how these
+testing functions work and how to create them.
+")
+
+(@* "Creating a Testing Suite"
+"The next two sections will go over how to make a basic assignment using this library.
+It is important to know that a |test-group| is a function provided by
+SRFI 64, which simply wraps a group of tests and gives them a name.
+
+\\medskip
+The macro |test-suite| creates an |assignment| from any number of
+files which should contain (srfi :64) test cases.  We can call these
+files |problem sets|. Here is a quick example of how |test-suite| can
+be used to create an assignment: \\medskip \\verbatim
 (test-group \"Assignment 10\"
   (test-suite
-     \"insert.ss\"
-     \"switcheroo.ss\"
+     \"insert.ps\"
+     \"switcheroo.ps\"
      (\"merge.ss\"
-      \"mergesort.ss\")
+      \"mergesort.scm\")
      \"bst-insert.ss\"))
 |endverbatim
 \\medskip
 \\noindent
-This creates a problem set that would be recognized by a test runner like so:
+
+Each path represents a file which contains a |test-group|, relative to
+the directory where the assignment file is located.  The above
+|test-group| creates an assignment that would be recognized by a
+|test-runner| like so:
+
 \\medskip
 \\verbatim
 Assignment 10:
   1: insert
   2: switcheroo
-  3:
-   3.a: merge
-   3.b: mergesort
+  3.a: merge
+  3.b: mergesort
   4: bst-insert
 |endverbatim
+
 \\medskip
 \\noindent
 Merge and mergesort become grouped together as subproblems 
 of one problem --- |test-suite| recognizes this because
-they are included within a nested list. Order matters. 
-\\medskip
-\\noindent
-After your test file has been created, you can run the test
-cases contained within your problem sets against a given
-submission by using the following procedure:
+they are included within a nested list. Order matters in this context.
 
-\\medskip\\verbatim
+\\medskip
+After your assignment file has been created, you can run your
+test cases against a given submission by using the following procedure:
+
+\\medskip
+\\verbatim
 (grade \"submission.ss\" \"a10.ss\" '(chezscheme) 1000000)
 |endverbatim
-\\medskip\\noindent
+\\medskip
+\\noindent
 
-|grade| uses, by default, the '(chezscheme) library as the sandbox that the 
-submission will be graded in.
-You most definitely don't want to be using this as the default library, 
-because then the submission will have complete access to all (chezscheme) procedures,
-which could cause a whole host of unpredicatbles.
+|grade| uses, by default, the '(chezscheme) library as the sandbox
+that the submission will be graded in.  You most definitely don't want
+to be using this as the default library, because then the submission
+will have complete access to all (chezscheme) procedures, which could
+cause a whole host of unpredicatbles. Please see the |(mags sandbox)| with
+more information about how to create your own sandboxes.
 "
 )
-
-(@* "An Example Assignment"
-"For this example assignment, we are going to create seperate files
-for each problem set. We then create a file for the assignment which
-will simply include these files in a either a |test-suite| or with
-nested |test-groups|. An example of this can be found later in this
-section. Having each problem set separated into its own file allows
-you to store them and use them in different assignments or semesters,
-in order to keep a library of problem sets. You can then easily create 
-and modify assignments by modifying just one file, never having to look at the
-test cases once you have created them! This is also an optional way to do this;
-you can also put the test-groups in order directly into the top-level test-group.
-\\medskip
-\\noindent
-The files containing the test cases, in this example, contain
-a |test-group| which has many |test-equal| clauses.
-The problems we are grading will be insert, switcheroo, merge,
-mergesort, and bst-insert. 
-"
-)
-
-(@* "Problem sets"
-"Let's begin by explaining how to create a 'problem set', which could
-be described as a set of test cases contained within a |test-group|. 
-We will be testing |insert| in this example.
-\\medskip
-\\noindent
-Insert takes a relation, the item to insert, and a list and inserts
-that item according to the given relation.  Here is an example of what our
-problem-set, insert.ss could contain:
-
-\\medskip
-\\verbatim
-(test-group \"insert\"
-  (test-equal \"Insert into middle, increasing\"
-    '(1 3 5 6 7 9 11)
-    (insert < 6 '(1 3 5 7 9 11)))
-  (test-equal '(0 -1 -2 -5) (insert > 0 '(0 -1 -2 -5))))
-|endverbatim
-\\medskip
-\\noindent
-In the second |test-equal| test case, the name would be auto-generated.
-When no name is provided to a test-<equality-pred> test,
-it takes the name as a |pretty-print| of the full tested expression.
-\\medskip
-\\verbatim
-  (test-equal '(1 3 5 6) (insert < 6 '(1 3 5))) => 
-  (test-equal \"(insert < 6 '(1 3 5)) '(1 3 5 6) (insert < 6 '(1 3 5)))\" ...
-|endverbatim
-\\medskip
-\\noindent
-")
 
 (@* "What about my special ADT?"
-"Let's say our Abstract Data Type, trees, is defined in a library |tree.ss|.  We can
-create our own test to use the ADT's pre-defined predicates using
-|define-equality-test|.  \\medskip \\noindent
+"Let's say our Abstract Data Type is defined in a library
+|tree.ss|.  We can create our own test that will use any predicate
+we wish by defining a new test with |define-equality-test|.
 
-|define-equality-test| takes a name and a procedure, and uses that
-procedure to create a |(srfi :64)| test case. More on using these
+\\medskip
+\\noindent
+|define-equality-test| takes a name and a ppredicate, and uses that
+predicate to create a |(srfi :64)| test case. More on using these
 test-cases and other types of tests can be found in Section 4, titled
 \"Using the Testing Framework\".  These new tests you define will work
 exactly the same way as |test-equal|. Here are some examples:
 
 \\medskip
 \\verbatim
-> (define-equality-test test-name (lambda (x y) (equal? x y)))
-> (test-name \"these are equal\" 3 3)
+> (current-test-runner test-runner-simple)
+> (define-equality-test foo-test (lambda (x y) (equal? x y)))
+> (foo-test \"these are equal\" 3 3)
 PASS
-> (define-equality-test test-equal equal?) 
-> (test-equal \"this should fail\" 3 4)
+> (define-equality-test my-test-equal equal?) 
+> (my-test-equal \"this should fail\" 3 4)
 FAIL
 > (define-equality-test test-same-shape same-shape?)
 > (test-same-shape \"these are trees of the same shape\" 
@@ -256,78 +282,85 @@ FAIL
      (tree 3 (leaf 0) (leaf 1)))
 PASS
 |endverbatim
+
 \\medskip
 \\noindent
-You can also use |define-equality-test| to handle programs
-that have special behavior. You can simply pass a function that
-takes two arguments, with the second argument being the |actual value|.
+
+You can also use |define-equality-test| to handle programs that have
+special behavior. The second argument, the predicate, should take two
+arguments, the first being the expected and the second being the
+actual value [note: expressions aren't passed directly to the predicate, just
+their values after evaluation.].
 ")
 
-(@* "Building a test-file"
-"Now that we understand the basics of creating test cases and problem
-sets, lets look at building the individual parts of an assignment's
+(@* "Building an Assignment Test File"
+"Now that have created the problem
+sets, we need to now start the assignment's
 |test-file|. In this example, we will build the file in parts in order
 to understand the entire file, and then display the finished file at
-the end of this section.
+the end of this section. Here is the assignment we want to create:
 
-The |test-file|, named |a10.ss| in this example, holds all of these
-test cases.  This file must call |(define-from-submission
-procedure-name ...)|, which declares which names of the procedures
-that will be graded from the submission. This might be easily extended
-to instead automatically pull these names from the |user-sandbox|,
-however that is not currently the case. They must be explicitly stated
-in the assignment file. {\\it Order doesn't matter}.  \\medskip
+\\medskip
 \\verbatim
-(define-from-submission
+Assignment 10:
+  1: insert
+  2: switcheroo
+  3.a: merge
+  3.b: mergesort
+  4: bst-insert
+|endverbatim
+
+\\medskip
+Each testing environment may need to have certain libraries loaded in
+order for the code to run.  The |test-file|, |a10.ss|, will set up the
+submission's sandbox environment with the needed libraries and pull
+the terms from the student code into that new environment.  These
+terms must be explicitly listed in the test-file. This is done in
+|(define-from-submission (<dependencies>) <variable-name> ...)|, which
+declares the names of the procedures from the submission that need to
+be available in the sandbox. {\\it Order doesn't matter}. An example
+of this follows:
+
+\\medskip
+\\verbatim
+(define-from-submission (\"\\u\\classes\\lib\\tree.ss\")
   merge
   mergesort
   insert
   bst-insert
   switcheroo)
 |endverbatim
+
 \\medskip
 \\noindent
-When you call a |test-group| without giving it a name, 
-the software will automatically number the internal |test-groups| in the
-order they appear, using |(separator)| between the problem numbers,
-formatted according to |(formatters)|. 
-This library provides basic formatting presets that you can use in your assignments,
-which is described in the section titled Automatic Formatting Presets.
+This might be extended to instead automatically pull these names from
+the |current-sandbox|; however, that is not currently the case. In its
+current state, they must be explicitly stated in the assignment file.
+
+\\medskip
+
+When you call a |test-group| without giving it a name, |mags| will
+automatically number the internal |test-groups| in the order they
+appear, using |(separator)| between the problem numbers, formatted
+according to |(formatters)|.  This library provides basic formatting
+presets that you can use in your assignments, which is described in
+the section titled Automatic Formatting Presets. Follows is the default settings:
+
 \\medskip
 \\verbatim
 (formatters
  `((0 . ,numeric)
-   (1 . ,alphabetic-upper-case)
-   (2 . ,alphabetic-lower-case)
+   (1 . ,alphabetic-lower-case)
+   (2 . ,alphabetic-upper-case)
    (3 . ,numeric->roman-upper-case)
    (4 . ,numeric->roman-lower-case)))
 |endverbatim
+
 \\medskip
-\\noindent
-By default, |mags grade| uses a \".\" to separate each depth of the tests.
-For example, on a nested problem set, we would see this:
-x\\medskip
-\\verbatim
-Assignment 10: ...
-  3:
-   3.a: merge
-   3.b: mergesort
-|endverbatim
-If we instead set |(separator \"-\")| in the |test-file|:
-\\medskip
-\\verbatim
-Assignment 10: ...
-   3:
-    3-a: merge
-    3-b: mergesort
-|endverbatim
-\\medskip
-\\noindent
-Now, we want to get the same assignment as the one mentioned 
-in the above section, but this example will not use |test-suite|, in order
-to understand how |test-suite| behaves. Each of these strings
-should represent a path to a file that contains |(srfi :64)| test cases.
-{\\it Order maters}
+We want to create the same assignment as the one mentioned above.
+Each of these strings should represent a path to a file that contains
+|(srfi :64)| test cases.  {\\it Order maters}
+
 \\medskip
 \\verbatim
 (test-group \"Assignment 10\"
@@ -338,9 +371,26 @@ should represent a path to a file that contains |(srfi :64)| test cases.
    (include \"mergesort.ss\"))
   (include \"bst-insert.ss\"))
 |endverbatim
+
+\\medskip
+\\noindent
+This could also be rewritten like so, using |test-suite|:
+
+\\medskip
+\\verbatim
+(test-group \"Assignment 10\"
+  (test-suite 
+    \"insert.ss\"
+   \"switcheroo.ss\"
+   (\"merge.ss\"
+    \"mergesort.ss\")
+   \"bst-insert.ss\"))
+|endverbatim
+
 \\medskip
 \\noindent
 Here is the completely finished example assignment, or test-file, |a10.ss|:
+
 \\medskip
 \\verbatim
 (define-from-submission
@@ -349,35 +399,25 @@ Here is the completely finished example assignment, or test-file, |a10.ss|:
   insert
   bst-insert
   switcheroo)
-
 (separator \"-\")
-(formatters
-    `((0 . ,numeric)
-      (1 . ,alphabetic-upper-case)
-      (2 . ,alphabetic-lower-case)
-      (3 . ,numeric->roman-upper-case)
-      (4 . ,numeric->roman-lower-case)))
 
 (include \"tree.ss\")
-(define treeequal? ...)
-(define same-shape? ...)
 (define-equality-test test-treequal treequal?)
 (define-equality-test test-same-shape same-shape?)
 
 (test-group \"Assignment 10\"
-        (include \"insert.ss\")
-        (include \"switcheroo.ss\")
-        (test-group
-         (include \"merge.ss\")
-         (include \"mergesort.ss\"))
-        (include \"bst-insert.ss\"))
+  (test-suite 
+   \"insert.ss\"
+   \"switcheroo.ss\"
+   (\"merge.ss\"
+    \"mergesort.ss\")
+   \"bst-insert.ss\"))
 |endverbatim
+
 \\medskip
 \\noindent
 Notice how we |include|, not |load|, files we want to use
-in our tests. You could instead include |treequal?| and |same-shape?| 
-in |tree.ss| and you could still use them in defining your own test 
-using |define-equality-test|.
+in our tests. This is important in regards to the implementation of SRFI 64.
 "
 )
 
@@ -387,7 +427,7 @@ like using JUnit tests.  There are many different types of tests,
 which take an |expected| vaue and the |actual| expression that will be
 tested. The |time-limit| is the time allotted for the |actual|
 expression to evaluate before automatically failing (if none provided,
-default is the |current-time-limit|.)
+the default is the |current-time-limit|.)
 
 \\medskip
 \\verbatim
@@ -399,21 +439,28 @@ default is the |current-time-limit|.)
 (test-approx [test-name] expected actual error [time-limit])
 (test-set [test-name] expected-set actual [time-limit])
 |endverbatim
+
 \\medskip
 \\noindent
-|test-set| takes a list of expected values, and the test passes if |actual| expression's value is a member of the |expected-set|.
+|test-set| takes a list of expected values, and
+the test passes if |actual| expression's value is a member of the
+|expected-set|.
+
 \\medskip
 \\verbatim
 (test-set '(1 4 5 6) (lambda (x) 3)) ==> FAIL
 (test-set '(1 4 5 6) (lambda (x) 4)) ==> PASS
+
 \\medskip
 \\verbatim
 (test-equal \"reverse on list of size 3\" '(1 2 3) (reverse '(1 2 3)))
 |endverbatim
+
 \\medskip
 \\noindent
 Tests can be between |test-begin| and |test-end| declarations, or
 nested inside of |test-groups|.
+
 \\medskip
 \\verbatim
 (test-group \"Assignment 4\"
@@ -422,48 +469,63 @@ nested inside of |test-groups|.
  (test-end \"Reverse\")
 
  (test-group \"Rot-2!\")
- (test-eq \"Rot-2! on a string\" \"ecv\" (rot-2! \"cat\"))) )
-|endverbatim \\medskip \\noindent 
-
-The object that is passed over the
-tests and handles the output for the tests is called a
-|test-runner|. A |test-runner| simply outputs its pass and fail data to the repl. When
-running tests, they must be executed after a |test-begin| and before a
-|test-end| or contained within a |test-group|, as seen above.
-\\medskip\\noindent
-
-The |test-runner| is initialized to the |current-test-runner|, which
-is by default, |test-runner-verbose|, and can be changed by setting the
-|current-test-runner| to one of the runners defined in |(mags
-runners)| or by defining your own.
+ (test-eq \"ecv\" (rot-2! \"cat\"))) )
+|endverbatim
 
 \\medskip
-\\noindent
+\\noindent 
+
+The object that is passed over the tests and handles the output for
+the tests is called a |test-runner|. A |test-runner| is a hook-based
+object that simply collects and records the result of tests, and
+outputs them according to its defined callback functions. These are
+customizable according to your needs. The |(mags runners)| library
+provides a few default test runners as well as conventions to use in
+your own test runners.
+
+\\medskip
+The |test-runner| is initialized to the |current-test-runner|, which
+is by default, |test-runner-quiet|, and can be changed by setting the
+|current-test-runner| to one of the runners defined in |(mags
+runners)| or by defining your own. Here is an example of grading with an
+explicit test-runner:
+
+\\medskip
+\\verbatim
+(parameterize ([current-test-runner (test-runner-quiet \"submission.graded\"
+                                                       \"submission.mail\")])
+ (grade \"submission.ss\"))
+
+\\medskip
 The full list of supported procedures, including more about
 test-groups, skipping tests, testing with cleanup, and customizing
-your own test-runners can be found on the 
-SRFI-64 Documentation\\numberedfootnote{
-{\\tt <http://srfi.schemers.org/srfi-64/srfi-64.html>}}.
+your own test-runners can be found on the SRFI-64
+Documentation\\numberedfootnote{ {\\tt
+<http://srfi.schemers.org/srfi-64/srfi-64.html>}}.
 " 
 )
 
-(@* "Define-equality-test: Examples and Implementation"
-"As discussed earlier, there are times when you may want to test for an ADT
-which you have created in another library. 
-\\medskip 
+(@* "Define-equality-test: Implementation"
+"As discussed earlier, there are times when you may want to test for
+an ADT which you have created in another library.
 
-This library's extenstion of |(srfi :64)| allows the use of
-|test-pred| which is used in the definition of |define-equality-test.
+\\medskip
+This library's extention of |srfi :64| allows the use of
+|test-pred| which is used to define new equality test forms.
 It can be used like so:
-\\medskip \\verbatim
+
+\\medskip
+\\verbatim
 > (test-pred pred? name expected actual)
 |endverbatim
-\\medskip \\noindent
-To define an equality test under a different name is allowed in |mags|. This procedure,
-|(define-equality-test)|, takes two arguments: |test-name|, the name
-of the test, and |pred|, the predicate it will use. It defines a test which can be used
-like any other |(srfi :64)| test, but using the given |predicate|
-instead.  Here is an example of its use with |treequal?|:
+
+\\medskip
+\\noindent
+The procedure |(define-equality-test)| takes two arguments:
+|test-name|, the name of the test, and |pred|, the predicate it will
+use. It defines a test which can be used like any other |(srfi :64)|
+test, but using the given |predicate| instead.  Here is an example of
+its use with |treequal?|:
 
 \\medskip \\verbatim 
 > (define-equality-test test-treequal treequal?)
@@ -472,13 +534,20 @@ instead.  Here is an example of its use with |treequal?|:
     '(tree 0) (leaf 3) (leaf 4))
 PASS
 |endverbatim
-\\medskip \\noindent 
-Here is the definition of |define-equality-test|. It is implemented as
-a macro that can follows the same form as the |(srfi :64)| tests.
-We are simply redefining a given test-name, using the macro |test-name|, which
-uses the macro defined in the following section. This is where we implement
-the |pretty-print| when no name is given. The exports |test-equal|, |-eq|,
- and the rest are redefined later using this macro.
+
+\\medskip
+\\noindent
+Here follows is the definition of |define-equality-test|. It is
+implemented as a macro that can follows the same form as the
+|(srfi :64)| tests.  We are simply redefining a given |test-name|, by
+defining a macro under that name.  This uses the chunk 'Defining a new
+test', which is defined in the following section.
+
+\\medskip
+This is where we execute a |pretty-print| as the name of the test,
+when none is given. The exports |test-equal|, |-eq|, and others are
+redefined later using this macro so that all of the forms are
+implemented in standard.
 "
          
 (@> |Define Equality Tester form| (export define-equality-test)
@@ -502,26 +571,24 @@ the |pretty-print| when no name is given. The exports |test-equal|, |-eq|,
 ))
 
 (@ "This section specifies some details about the implementation of
-the protection from infinite loops in the |test-expr|. We want the tests
-to continue to the next test even if they are infinite loops, since
-|(srfi :64)| does not have support for this. This is done by guarding
-against it within a scheme engine.  This way, we can grade an entire
-submission, even if it finds an infinite loop on one of the test
-cases. The engine will signal the error and fail the test.
+the protection from infinite loops. Tests should continue to the next
+test even if they produce infinite loops, and |(srfi :64)| does not
+have support for this, so it is done here. We guard against this
+within a scheme engine that times out after a certain number of ticks.
+The engine will signal the error and fail the test.
 
-\\medskip\\noindet
-When defining a new test, we need to create an expression
-with the given |test-expr|, the name the new test will take, and
-either a new |time-limit| or |current-time-limit|. If the |test-expr|
-times out, we raise a |timeout| exception. Else, we use an extension
-of the |(srfi :64)| tests, test-pred|.
-\\medskip\\noindent
+\\medskip
+This chunk takes a name, the expected value, the |test-expr|
+to be evaluated, and either a |time-limit|. If the |test-expr| times
+out, we raise a |&timeout| exception. Else, we use an extension of the
+|(srfi :64)| tests, |test-pred|, with the given predicate..
 
-Note: the |test-expr| is evaluated within the engine BEFORE it is sent
+\\medskip
+Note: the |test-expr| is evaluated within the engine before it is sent
 to the |test-pred| procedure. This means that the |pred?| only has
-access to the value, not the actual expression.  The |test-expr| can
-be retrieved from the name of the test, however. This can probably be
-improved.
+access to the {{\\it value}}, not the actual expression.  The
+|test-expr| can be retrieved from the name of the test in some cases,
+however. This might be improved.
 "
 
 (@> |Defining a new test| (capture name expected test-expr time-limit pred?)
@@ -555,12 +622,13 @@ improved.
 (@< |Define Equality Tester form|
 ))
 
-(@* "Grade: Usage Specifics"
-"You can use this procedure, |grade|, to load a test suite into an
-environment. |grade| takes two arguments: |submission|, a scheme file that is
-to be graded and |test-file|, that should contain |(srfi :64)| test
-cases.  It will load the submission into a sandbox created from the
-|current-sandbox-name| and run the test cases against the submitted code.
+(@* "Grading Usage"
+"You can use this procedure, |grade|, to load test cases into a safe
+sandbox environment. |grade| takes two arguments: |submission|, a
+scheme file that is to be graded and |test-file|, that should contain
+|(srfi :64)| test cases.  It will load the submission into a sandbox
+created from the |current-sandbox-name| and run the test cases against
+the submitted code.
 
 \\smallskip
 Grade can take the following forms:
@@ -578,11 +646,12 @@ Grade can take the following forms:
 (grade submission test-file sandbox-name)
 (grade submission test-file sandbox-name time-limit)
 |endverbatim
+
 \\medskip
 \\noindent
 If an argument is ommitted, |grade| will use the |(current-*)| parameter in its place.
+
 \\medskip
-\\noindent
 The inputs should have the following properties:
 
 \\item{|submission|}
@@ -599,48 +668,59 @@ symbols and should represent an environment.
 The time limit for the grading of the |submission| within the sandbox, 
 this must be an exact positive integer. This protects the grading system 
 from infinite loops, since they are not considered in the |(srfi :64)| library.
-\\medskip
-An example of using grade:
+
 \\medskip
 \\verbatim 
+An example:
 > (load \"load.w\") 
 > (cd \"example_tests/example_a10\") 
 > (grade \"menzel.ss\" \"a10.ss\" '(chezscheme) 1000000) 
-# of expected passes ..
+number of expected passes ..
 > (grade \"submission.ss\" \"a10.ss\" '(chezscheme) 1000000)
 FAIL Insert 
-# of expected failures...
-|endverbatim 
-\\medskip
-\\noindent
+number of expected failures...
+|endverbatim
+
 ")
 
-(@* "Grade: Convenience"
-"We have certain convenience procedures that you can use to minimize the
-arguments you can pass to grade, such as the
+(@* "Grading: Convenience"
+"We have certain convenience procedures that you can use to minimize
+the explicit calls to arguments of grade. These are the
 |current-test-file|, |current-sandbox-name|, and |current-time-limit|.
 Here is an example of their usage.
+
+\\medskip
+Here we are setting the sandbox environment, time limit, and test-file,
+to be used in subsequent calls to |grade|:
+
 \\medskip
 \\verbatim 
-Setting the sandbox environment and time limit:
-\\medskip\\verbatim 
 > (current-sandbox-name '(chezscheme))
 > (current-time-limit 1000000)
 > (current-test-file \"a10.ss\")
 |endverbatim
-\\medskip\\noindent
+
+\\medskip
+\\noindent
 Grading a submission with the (current-test-runner):
-\\medskip\\verbatim
+
+\\medskip
+\\verbatim
 > (grade \"submission.ss\")
 |endverbatim
+
+\\medskip
+\\noindent
 Grading a submission with a given test-runner:
-\\medskip\\verbatim
-> (grade (\"submission.ss\" \"submission.grade\" \"submission.mail\"))
+
+\\medskip
+\\verbatim
+> (parameterize ([current-test-runner (test-runner-* <args> ...)])
+     (grade \"submission.ss\"))
 |endverbatim
-In the above example, \"menzel.ss\" and \"submission.ss\" are graded against the 
-|test-file| \"a10.ss\" with the |sandbox-name| '(chezscheme) and |time-limit| 1000000.
-\\medskip\\noindent
-Here are the definitions for these convenience parameters and others:"
+
+\\medskip
+Following are the definitions for these convenience parameters."
    
 (@ "The |current-time-limit| is a parameter that is used in the grading engine."
 (@c
@@ -667,7 +747,7 @@ Here are the definitions for these convenience parameters and others:"
 ))
  
 (@ "The |current-test-file| is a parameter you can use to store the
-location of the test file, that is, the file that contains
+path to the test file. The |test-file| is the file that contains
 |(srfi :64)| test cases and which will be graded against the submissions."
 (@c
  (define current-test-file 
@@ -680,16 +760,17 @@ location of the test file, that is, the file that contains
 
 (@* "Grade: Implementation"
 "The grader itself is implemented as a macro, As said above, It takes
-a |submission|, two |ports|, |test-file|, |sandbox-name|, and
-|time-limit|.  You need to give a substantial amount of time for this
-to load the |submission| without a timeout - 1000000 ticks is
-default. It creates a sandbox from the given |sandbox-name|, and
-loads the submission into this new sandbox with the given |time-limit|.
-\\medskip 
-\\noindent
-If the sandbox could not load the submission file, it will handle that
-according to the specifications of the |Handle submission load
-error| chunk."
+a |submission|, |test-file|, |sandbox-name|, and |time-limit|.  You
+need to give a substantial amount of time for this to load the
+|submission| without a timeout - 1000000 ticks is the default. It
+creates a sandbox from the given |sandbox-name|, and loads the
+submission into this new sandbox with the given |time-limit|.
+
+\\medskip
+If the sandbox could not load the submission file, it will
+pass the fail data to the test runner to be printed out in
+whichever way the test-runner has specified. This is done by
+creating a |test-load| form, which tests if a load fails or passes."
 
 (@> |Define internal grade macro| (export %grade)
 (define (%grade submission p-port s-port test-file sandbox-name time-limit)
@@ -706,25 +787,19 @@ error| chunk."
   (let ([student-port (get-port s-port)]       
         [port (get-port p-port)]
         [sndbx (sandbox sandbox-name)])
-      (call/cc 
-        (lambda (return) 
-          (with-exception-handler 
-           (@< |Unchecked error handler| return port student-port) 
-           (lambda ()  
-             (load/sandbox submission sndbx time-limit)
-             (@< |Set appropriate test runner| port student-port)
-             (parameterize ([counter (new-counter)]
-                            [source-directories
-                             (cons
-                              (path-parent test-file)
-                              (source-directories))]
-                            [user-sandbox sndbx])
-            (load test-file
-              (let ([env (copy-environment 
-                  (environment '(chezscheme)
-                               '(mags grade) 
-                               '(mags sandbox)))])
-            (lambda (e) (eval e env))))))))))) 
+    (@< |Set appropriate test runner| port student-port)
+    (parameterize ([counter (new-counter)]
+		   [current-sandbox sndbx]
+		   [current-submission-file submission]
+		   [source-directories
+		     (cons (path-parent test-file)
+			   (source-directories))])
+      (load test-file
+	(let ([env (copy-environment 
+		     (environment '(chezscheme)
+				  '(mags grade) 
+				  '(mags sandbox)))])
+	  (lambda (e) (eval e env)))))))
 ))
 
 (@ "On top of this we layer the normal multi-arity interface."
@@ -757,7 +832,7 @@ error| chunk."
 ))
 
 (@ "For grading, we need to set which test runner it will use. Right
-now, it always uses |test-runner-verbose|. The |port| and |student-port|
+now, it always uses |test-runner-quiet|. The |port| and |student-port|
 are the open ports, and |p-port| and |s-port| are the original ports
 or filenames that were passed to |grade| from the user."
 (@> |Set appropriate test runner| (capture p-port s-port)
@@ -769,35 +844,6 @@ or filenames that were passed to |grade| from the user."
 (@> |Set test-runner as current-test-runner| (capture test-runner)
 (if (test-runner? test-runner)
     (current-test-runner test-runner))
-))
-
-(@ "Whenever we load an user's submission there is a chance that their
-submission will fail to load with some sort of problem or another. In
-these cases, we want to print out an error that indicates this."
-
-(@> |Unchecked error handler| (capture return p sp)
-(lambda (c)
-  (cond
-   [(illegal-term? c) 
-    (format p "Student uses illegal term ~a" 
-            (illegal-term-name c))
-    (format sp "You should not be using ~a" 
-            (illegal-term-name c))
-    (display "\n\n")]    
-   [(timeout? c) 
-;    (format (current-output-port)  
-;            "   Submission failed to load in time. Make sure that the (current-time-limit) is set to its default value.~%"    )
-    (return)]
-   [(warning? c) 
-;    (format p "There is a warning in the student file.")
-;    (format sp "There is a warning in your file. Please fix the bugs in your file until the file loads with no messages.")
-    (return)]
-   [else
-;    (format sp "There is a load error in your file. Please fix or comment out the errors until the file loads with no messages.\n")
-    (display-condition c p)
-    (display-condition c sp)
-    (display "\n")
-    (return)]))
 ))
 
 (@ "The arguments passed to |grade| must satisfy the following check:"
@@ -832,9 +878,9 @@ our |define-equality-test|, which embeds the engine."
   (lambda (exp act)
     (let loop ([ls exp])
       (cond
- [(null? ls) #f]
- [(equal? (car ls) act) #t]
- [else (loop (cdr ls))]))))
+        [(null? ls) #f]
+        [(equal? (car ls) act) #t]
+        [else (loop (cdr ls))]))))
 (define-syntax test-approx
   (syntax-rules ()
     [(_ test-expr expected error) 
@@ -861,56 +907,166 @@ our |define-equality-test|, which embeds the engine."
 ))
 
 (@* "Access to user code"
-"When writing test files, it's helpful to have access to the user's 
-code, otherwise it's not much use. The following form helps to 
-extract out the user's definitions for a given procedure. This is
-required in each grade file in order to specify which defintions
-should be graded.
+"When writing test files, it's helpful to have access to the user's
+code, otherwise the grader is not much use. The following form helps
+to extract out the user's definitions for a given procedure to be
+defined in the submission's sandbox. This is required in each grade
+file in order to specify which defintions should be graded. This ensures
+safety to the entire system.
+
 \\medskip
 \\verbatim
-(define-from-submission
-  ls0
-  ls1
-  bst-sort
-  insert-in-order
-  etc)
+(define-from-submission (deps ...)
+  id1 id2 ...)
 |endverbatim
 \\medskip
 
 \\noindent
-|user-sandbox| is a parameter that represents the sandbox in which
-the submission resides. |unbound| is a dummy procedure which unbound
-procedures are defined as in order to indentify them during grading."
+The |deps| should be a list of strings pointing to files that should be loaded
+before the submission is loaded into the sandbox. The expansion of
+|define-from-submission| looks something like the following:
+
+\\medskip\\verbatim
+(begin
+  (define dummy 
+    (begin 
+      (load deps eval-in-sandbox) ...
+      (load/sandbox 
+	(current-submission-file) 
+	(current-sandbox) 
+	(current-time-limit))
+      (void)))
+  (define-from-environment id1 (current-sandbox))
+  ...)
+|endverbatim
+\\medskip
+
+\\noindent
+Obviously, the loading of the dependencies is a little more
+sophisticated in the actual macro. Particularly, we want to signal
+errors appropriately when we load in the files, and we also want to make
+sure that the errors are reported via the runners, instead of possibly
+leaving our testing framework to report the errors.
+|current-sandbox| is a parameter that represents the sandbox in which
+the submission resides."
 
 (@c
-(define user-sandbox 
+(define-syntax define-from-submission
+  (syntax-rules ()
+    [(_ (deps ...) id ...)
+     (and (for-all identifier? #'(id ...))
+	  (for-all string? (map syntax->datum #'(deps ...))))
+     (begin
+       (define dummy
+	 (begin
+	   (test-load deps 
+	     (load deps (lambda (exp) (eval exp (current-sandbox)))))
+	   ...
+	   (test-load (current-submission-file)
+	     (load/sandbox 
+	       (current-submission-file)
+	       (current-sandbox)
+	       (current-time-limit)))
+	   (void)))
+       (define-from-environment id (current-sandbox))
+       ...)]))
+))
+
+(@ "|define-from-environment| is defined below. It uses a two flags to
+identify a given |id-val|, |not-bound| and |not-evaled|. A given
+|id-val| is the value of the |id| after it has been evaled in the
+environment. We first set |id-val| to be |not-evaled|, and then
+eval it. If it comes up to be unbound, we then raise an |&unbound-term|
+condition. Else, we simply return the value. This could probably be
+refactored to use more straightforward tactics.
+"
+
+(@c
+(define not-bound (cons 'not-bound '()))
+(define not-evaled (cons 'not-evaled '()))
+(define (not-bound? x) (eq? not-bound x))
+(define (not-evaled? x) (eq? not-evaled x))
+(define-syntax define-from-environment
+  (syntax-rules ()
+    [(_ id env)
+     (begin
+       (define id-val not-evaled)
+       (define-syntax id
+	 (identifier-syntax
+	   (cond
+	     [(not-evaled? id-val)
+	      (set! id-val 
+		(guard (c [(condition? c) not-bound]
+			  [else (error 'define-from-submission
+				  "This should never happen."
+				  c)])
+		  (eval 'id (current-sandbox))))
+	      (if (not-bound? id-val)
+		  (raise (unbound-term 'id))
+		  id-val)]
+	     [(not-bound? id-val) (raise (unbound-term 'id))]
+	     [else id-val]))))]))
+))
+
+(@ "The following parameters are set in the |define-from-submission| form
+to be used internally in the |grade| macro as the path to the submission file
+that is being graded as well as the sandbox environment associated with it.
+"
+
+(@c
+(define current-sandbox 
   (make-parameter #f
     (lambda (maybe-env)
       (assert (or (not maybe-env) (environment? maybe-env)))
       maybe-env)))
 
+(define current-submission-file
+  (make-parameter #f
+    (lambda (maybe-path)
+      (assert (or (not maybe-path) (string? maybe-path)))
+      maybe-path)))
+
+(define-condition-type &load &error make-load-condition load-condition?
+  (file load-condition-file))
+))
+
+(@ "|test-load| is a test form created in order to have access to any
+compilation errors when a load fails. This way, they will be accessible
+by the |current-test-runner|."
+(@c
+(define-syntax test-load
+  (syntax-rules ()
+    [(_ name exp)
+     (srfi:test-assert (format "Load ~s" name)
+                  (guard (c [(condition? c) 
+                             (raise (condition (make-load-condition exp) c))]
+                            [else
+                             (begin
+                               (raise
+                                (condition 
+                                 (make-load-condition exp)
+                                 (make-irritants-condition (list c))))
+                               (exit))])
+                              exp #t))]))
+))
+
+
+(@ "This syntax, |unbound| is not used right now. It could probably be used in
+|define-from-environment| to make it simpler."
+
+(@c
 (define-syntax unbound
   (syntax-rules ()
     [(_ id) 
-     (lambda args
-       (raise (unbound-term 'id)))]) )
-
-(define-syntax define-from-submission
-  (syntax-rules ()
-    [(_ id ...)
-     (begin
-       (define id
-         (guard (x [(condition? x) (unbound id)]
-                   [else x])
-                (eval 'id (user-sandbox))))
-       ...)]))
+     (define-syntax id 
+       (identifier-syntax (raise (unbound-term 'id))))]))
 ))
 
 (@* "Automatic Numbering and Formatting"
-"Here we lay out the foundation for custom formatting for easily
-customized numbering conventions. These are procedures that take
-a number and give back a value. This allows easy customization to the
-format of your assignment. By default, they are as follows:
+"Here we implement custom formatting and easily customized numbering
+conventions. These are procedures that take a number and give back a
+value. This allows easy customization to the format of your
+assignment. By default, the heirarchy is as follows:
 \\medskip
 
 \\item{numeric}
@@ -927,6 +1083,27 @@ A, B, C...
 
 \\item{numeric->roman-upper-case}
 I , II, III, IV...
+
+\\medskip
+\\noindent
+By default, |mags grade| uses a \".\" to separate each depth of the tests.
+For example, on a nested problem set, we would see this:
+
+\\medskip
+\\verbatim
+Assignment 10: ...
+   3.a: merge
+   3.b: mergesort
+|endverbatim
+
+\\medskip
+\\noindent
+If we instead set |(separator \"-\")| in the |test-file|, each . would
+be replaced by - instead.
+
+\\medskip
+The following definitions are trivial, but provided to give
+convenience to the user. 
 "
 
 (@c
@@ -946,7 +1123,7 @@ I , II, III, IV...
      [(< n 9) (loop (sub1 n) (cons #\I roman))]
      [(check-tier = n 9) (loop (- n 9) (cons #\I (cons #\X roman)))]
      [(check-tier = n 10) (loop (- n 10) (cons #\X roman))]
-     [else "too high"])))
+     [else ""])))
 
 (define (numeric->roman-lower-case numeric) 
   (define (check-tier rel? x y)
@@ -964,7 +1141,7 @@ I , II, III, IV...
      [(< n 9) (loop (sub1 n) (cons #\i roman))]
      [(check-tier = n 9) (loop (- n 9) (cons #\i (cons #\x roman)))]
      [(check-tier = n 10) (loop (- n 10) (cons #\x roman))]
-     [else "too high"])))
+     [else ""])))
 
 (define (alphabetic-lower-case n)
   (integer->char (+ 96 n)))
@@ -976,9 +1153,13 @@ I , II, III, IV...
   n)
 ))
 
-(@ "You can change the |formatters| parameter in the same environment
-that will contain an unnamed |test-group|. It must be an association list
-that associates a depth and a corresponding formatting procedure.
+(@ "You can change the |formatters| parameter in the same
+environment (basically, the same test-file) that contains an
+unnamed |test-group|. It must be an association list that associates a
+depth and a corresponding formatting procedure. The unnamed
+|test-group| will become expanded into a named test-group, where
+the name has been automatically generated.
+
 \\medskip
 \\verbatim
 (formatters
@@ -988,9 +1169,11 @@ that associates a depth and a corresponding formatting procedure.
    (3 . ,numeric->roman-lower-case)
    (4 . ,numeric->roman-upper-case)))
 |endverbatim
-\\smallskip
+
+\\medskip
 \\noindent
-The input to |formatters| must be not null and also be an association list:"
+The input to |formatters| must be not null and also be an association
+list. The following chunk verifies this property."
 
 (@> |Verify formatters input| (capture alist)
      (let ([assoc-list? 
@@ -1004,10 +1187,11 @@ The input to |formatters| must be not null and also be an association list:"
        alist)
 ))
 
-
-(@ "Test group is redefined in order to allow optional names. If the name
-is ommitted, the automatic formatting feature will be enabled and will
-automatically pick the name."
+(@ "Here, |test-group| is redefined in order to allow names to be
+optional. If the name is ommitted, the automatic formatting feature
+will be enabled and will automatically generate the name. This
+is done by using a simple |counter| parameter that counts the number
+of test-groups seen in this environment so far."
 
 (@> |Define test-group| (export test-group)
 (...
@@ -1023,8 +1207,8 @@ automatically pick the name."
           test-or-expr ...))])))
 ))
 
-(@* "Formatting: Convenience"
-"The following procedures are used to aid in the automatic formatting feature.
+(@* "Formatting: Forms"
+"The following procedures are used as helpers in the automatic formatting feature.
 \\medskip
 
 \\item{|formatters|}
@@ -1175,7 +1359,7 @@ library."
 ))
 
 
-(@ "Following are test cases for formatting"
+(@ "Following are test cases for the formatting."
 (@> |Test formatters| 
 (let ()
   (test-begin "Formatters")

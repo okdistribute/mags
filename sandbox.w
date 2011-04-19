@@ -261,7 +261,7 @@ expression in the file"
           (lambda ()
             (parameterize 
                 ([current-eval 
-                   (lambda (x . ignore) (compile x env))])
+                  (lambda (x . ignore) (unless (and (pair? x) (equal? (car x) 'load)) (compile x env)))])
               (load file))))])
     (@< |Run Timeout Engine| eng time)))
 ))

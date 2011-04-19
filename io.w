@@ -355,7 +355,7 @@ specific fields within the nodes."
     (test-assert "a file is a file" (file? file))
     (test-equal "the file has the corrent node-name" "a" (node-name file))
     (test-equal "the file has the correct node-contents" "abcd" (node-contents file)))
-
+    
     (test-group "Directory nodes"
     (test-eq "the empty list is not a directory" #f (dir? '()))
     (test-eq "a symbol is not a directory" #f (dir? 'a))
@@ -429,11 +429,11 @@ the given path.
   (test-end "path-lookup")
 ))
 
-(@ "Given the name of the file or directory we want to find and the
-list of nodes in the |current-vfs|, this procedure finds the |node|
-that represents that path and then returns it. It also takes a third
-argument which represents a predicate, or what we are assuming what type of
-node it should be, either a file or dir."
+(@ "Given the name of the file or directory we want to find and a list
+of |nodes|, this procedure finds the |node| that represents that path
+and then returns it. It also takes a third argument which represents a
+predicate, or what we are assuming what type of node it should be,
+either a file or dir."
 
 (@> |Lookup node| (capture name node-list node?)
 (define (correct-node? node)
@@ -576,9 +576,9 @@ on the node that was found from |path-lookup|."
 (@ "Filesystem operations"   
 
 (@c
- (define (delete-file path)
+ (trace-define (delete-file path)
    (let ([new-vfs
-    (let loop (
+    (trace-let loop (
       [path path]
       [node-list (list (current-vfs))])
     (let ([pcar (path-first path)])
@@ -596,6 +596,24 @@ on the node that was found from |path-lookup|."
 
  (define (file-exists? path)
    (and (path-lookup path)))
+
+ (define (make-dir path)
+   (let ([new-vfs
+    (let loop (
+      [path path]
+      [node-list (list (current-vfs))])
+    (let ([pcar (path-first path)])
+      (if (string-null? pcar)
+        (let ([pcdr (path-rest path)])
+	  (set-cdr! (@< |Lookup node| pcdr node-list node?) node-list))
+        (let ([node (@< |Lookup node| pcar node-list dir?)])
+          (and node
+	       (append (remp dir? (current-vfs)) 
+		(loop
+		 (path-rest path)
+		 (node-contents node))))))))]) 
+     (and new-vfs
+	 (current-vfs new-vfs))))
 ))
 
 (@ "Following are test cases for the filesystem operations"
@@ -625,7 +643,15 @@ on the node that was found from |path-lookup|."
    '(dir "/"
      (file "b" . "")
      (dir "cd" (file "f" . "")))
-   (current-vfs))  
+   (current-vfs))
+
+  (test-assert "make-dir1" (make-dir "/blue"))
+  (test-equal "current-vfs is correct1"
+   '(dir "/"
+     (file "b" . "")
+     (dir "cd" (file "e" . "") (file "f" . ""))
+     (dir "blue"))
+   (current-vfs))
 
 (parameterize ([current-vfs '(dir "/" (file "b" . "")
 				  (dir "cd" (file "f" . "")))])

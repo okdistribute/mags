@@ -38,7 +38,8 @@ Documentation\\numberedfootnote{
 (mags runners)
 (export
  test-runner-quiet
- test-runner-verbose) 
+ test-runner-verbose
+ max-name-length) 
 (import 
  (chezscheme)
  (srfi :64)
@@ -51,48 +52,69 @@ output of the test runner. For more specifics about writing your own
 test runners, visit the (SRFI :64) documentation noted in the
 beginning of this library.  Let's look at the various test-runners defined
 for |mags|, and discuss each one.
+\\medskip
 
-\\medskip \\noindent {\\tt test-runner-verbose}
+\\item{|test-runner-verbose|}
+The test-runner-verbose is a basic test-runner which prints out all fail
+and passed cases. It takes two ports, one gets more detailed output. It
+tallies up the failed and passed cases and reports them by group. It assumes
+that each |test-group| represents a set of unit tests, and only counts a pass
+if all the tests in that group pass.
 
-\\medskip \\noindent {\\tt test-runner-quiet} The test runner quiet is
-like the test-runner-verbose, except it does not report passed tests.
+\\item{|test-runner-quiet|}
+The test-runner-quiet is like the test-runner-verbose, except it does
+not report passed tests.
 
+\\medskip
+We also introduce in this library conventions which make it easier to
+create your own test-runner objects for integrating seamlessly with
+(|mags grade|).
 
+\\item{|max-name-length|}
+The max-name-length is a parameter you can set in your testing files
+in order to set the maximum printed length of any given test.
+
+\\item{|truncate-string|}
+This function takes a string and truncates it according to the
+|max-name-length| parameter.
+
+\\medskip
 ")
 
-(@* "Test Runners: test-runner-verbose"
-"This test runner, named |test-runner-verbose|, uses two ports,
-|s-port|, for student output and |p-port| a port for
-professor output. The ports must be strings or open ports.
-The test runner will output to both ports in the following way:
-\\medskip
-\\noindent
-To the student: A printing of the simple result of each test (either
-FAILED or PASSED), with any exceptions or conditions printed as well
-as the overall tally.
-\\smallskip
-\\noindent
-To the professor: In addition to the above, the specific tests which failed as
-well as the expected and actual values of the test cases."
+(@* "test-runner-verbose"
+"This test runner, named |test-runner-verbose|, uses two ports:
+|s-port| for student output and |p-port| for professor output. The
+ports must be strings or open ports.  The test runner will output to
+both ports in the following way:
 
-(@ "The |test-runner-verbose| assumes that each problem set will be contained within a 
-test group. For example, \\medskip
-\\noindent
+\\item{|s-port|}
+A simple result of each test (either FAILED or PASSED), and
+any errors, as well as the overall tally.
+
+\\item{|p-port|}
+In addition to the above, the specific tests which failed as well as
+the expected and actual values of the test cases.The |test-runner-verbose| assumes that each problem set will be
+contained within a |test-group|. For example, we will show you what
+|test-runner-verbose| would output for the following |test-group|:
+
+\\medskip
 \\verbatim
 (test-group \"Assignment 10\"
-
-(test-group 
- (test-group \"lists\"
-   (test-equal '(3 2 1) (reverse '(1 2 3)))
-   (test-equal '() (error 'foo \"bar\"))))
-(test-group
- (test-group \"insert\"
- (test-equal \"3 into list of size 1\" '(1 3) (insert 3 '(1)))))
+  (test-group \"1\"
+   (test-group \"lists\"
+    (test-equal '(3 2 1) (reverse '(1 2 3)))
+    (test-equal '() (error 'foo \"bar\"))))
+  (test-group \"2\"
+   (test-group \"insert\"
+     (test-equal \"3 into list of size 1\" '(1 3) (insert 3 '(1)))))
 )
 |endverbatim
+
 \\medskip
-Output for |student-port|:
-\\smallskip\\verbatim
+\\noindent
+|s-port|:
+
+\\verbatim
 Results for Assignment 10
 
 1:lists: Incorrect
@@ -100,103 +122,99 @@ Results for Assignment 10
 
 Your assignment has been successfully loaded and autograded.
 |endverbatim
+
 \\medskip
-Output for |professor-port|:
-\\smallskip
+\\noindent
+|prof-port|:
+
 \\verbatim
 Results for Assignment 10
 
-1:lists: 
+1:lists:
 FAILED
-  Tested: (reverse '(1 2 3))
-  Expected: (3 2 1)
-  Actual: (2 1 3)
+Tested: (reverse '(1 2 3))
+Expected: (3 2 1)
+Actual: (2 1 3)
 
 FAILED
-  Tested: '(1)
-  Error: Exception in foo: bar
+Tested: '(1)
+Error: Exception in foo: bar
 
 2:insert: PASSED
 
 Test Results
-  Passed: 1
-  Failed: 1
-  Missing: 0
-|endverbatim
-\\medskip
-\\noindent
-"
+Passed: 1
+Failed: 1
+Missing: 0
+|endverbatim"
 )
 
-(@ "A |test-runner-verbose| is defined here. It takes two arguments,
+(@ "The |test-runner-verbose| is defined here. It takes two arguments,
 both assumed to be either strings or open ports. One represents the
 output to the professor and the other to the student.  Test runners
-have callback functions that are used on certain cases.
-\\medskip\\noindent"
+have callback functions that are used in certain cases. You can find
+how each is implemented in the following sections."
 (@> |Define test-runner-verbose| (export test-runner-verbose)
-(define (test-runner-verbose pp sp)
-  (let ([port (@< |get-port| pp)] 
-        [student-port (@< |get-port| sp)]
-        [runner (test-runner-null)]
-        [passed-count 0]
-        [failed-count 0]
-        [missing-count 0])
-    (@< |On-group-begin verbose| runner port student-port suite-name)
-    (@< |On-test-end verbose| runner port student-port failed-count missing-count)
-    (@< |On-bad-count| runner port)
-    (@< |On-bad-end-name| runner port)
-    (@< |On-group-end verbose| runner port student-port passed-count failed-count)
-    (@< |On-final verbose| 
-        runner port student-port passed-count failed-count missing-count)
-    runner))
+    (define (test-runner-verbose pp sp)
+      (let ([port (@< |get-port| pp)] 
+            [student-port (@< |get-port| sp)]
+            [runner (test-runner-null)]
+            [passed-count 0]
+            [failed-count 0]
+            [missing-count 0])
+        (@< |On-group-begin verbose| runner port student-port suite-name)
+        (@< |On-test-end verbose| runner port student-port failed-count missing-count)
+        (@< |On-bad-count| runner port)
+        (@< |On-bad-end-name| runner port)
+        (@< |On-group-end verbose| runner port student-port passed-count failed-count)
+        (@< |On-final verbose| 
+            runner port student-port passed-count failed-count missing-count)
+        runner))
 ))
 
-(@* "Test Runners: test-runner-quiet"
+(@* "test-runner-quiet"
 "This test runner, named |test-runner-quiet|, is of the same format
-as the above |test-runner-verbose|, except passes are unreported."
-)
+as the above |test-runner-verbose|, except that passes are not reported.
+and only the first fail case is printed.
 
-(@ "A |test-runner-quiet| is defined here. It takes two arguments,
-both assumed to be either strings or open ports. One represents the
-output to the professor and the other to the student have callback
-functions that cases.
 \\medskip
-\\noindent"
-(@> |Define test-runner-quiet| (export test-runner-quiet)
-(define (test-runner-quiet pp sp)
-  (let ([port (@< |get-port| pp)] 
-        [student-port (@< |get-port| sp)]
-        [runner (test-runner-null)]
-        [passed-count 0]
-        [failed-count 0]
-        [missing-count 0]
-        [resulted? #f]
-        [failed? #f])
-    (@< |On-group-begin quiet| runner port student-port suite-name)
-    (@< |On-test-end quiet| runner port student-port failed-count missing-count resulted? failed?)
-    (@< |On-bad-count| runner port)
-    (@< |On-bad-end-name| runner port)
-    (@< |On-group-end quiet| runner passed-count failed-count failed?)
-    (@< |On-final quiet| 
-        runner port student-port passed-count failed-count missing-count)
-    runner))
-))
+TODO: an example here."
 
+(@ "The |test-runner-quiet| is defined here. It takes two arguments,
+both assumed to be either strings or open ports. One represents the
+output to the professor and the other to the student"
+   (@> |Define test-runner-quiet| (export test-runner-quiet)
+       (define (test-runner-quiet pp sp)
+         (let ([port (@< |get-port| pp)] 
+               [student-port (@< |get-port| sp)]
+               [runner (test-runner-null)]
+               [passed-count 0]
+               [failed-count 0]
+               [missing-count 0]
+               [resulted? #f]
+               [failed? #f])
+           (@< |On-group-begin quiet| runner port student-port suite-name)
+           (@< |On-test-end quiet| runner port student-port failed-count missing-count resulted? failed?)
+           (@< |On-bad-count| runner port)
+           (@< |On-bad-end-name| runner port)
+           (@< |On-group-end quiet| runner passed-count failed-count failed?)
+           (@< |On-final quiet| 
+               runner port student-port passed-count failed-count missing-count)
+           runner))
+       ))
+)
 
 (@* "Test-runner-verbose implementation"
-"Following are the implementations of the above test-runners"
+"The following sections contain the implementation of the callback
+functions used in the |test-runner-verbose|."
 )
 
-(@ "The result of each test is handled in the |test-runner-verbose| by
-checking to see which type of result occured: an error, a fail, or a
-pass.  If it errors, it prints the error using the printing convention
-|Print error|, else it prints the resutl with any errors.  It uses the
-|test-runner-aux-value| of the runner to store this information in
-order to ensure only one pass or fail is recorded within a test-group.
-\\medskip \\noindent
-When no name is provided to a test-<equality-pred> test,
-|test-runner-verbose| pretty-prints the full tested expression."
-
+(@ "This chunk handles the result of each test in the
+|test-runner-verbose|.  It starts by checking to see which type of
+result occured: an error, a fail, or a pass.  If it errors, it prints
+the error using the printing convention |Print error|.  It uses the
+|test-runner-aux-value| of the runner to store extra state in order to
+ensure only one pass or fail is recorded within a test-group."
 (@> |On-test-end verbose| (capture runner port student-port failed-count missing-count)
 (test-runner-on-test-end! runner
   (lambda (runner)
@@ -204,7 +222,7 @@ When no name is provided to a test-<equality-pred> test,
       [was-error? (test-result-ref runner 'was-error?)]
       [expected (test-result-ref runner 'expected-value)]
       [actual (test-result-ref runner 'actual-value)]
-      [test-name (@< |Truncate test-name| (test-runner-test-name runner))])
+      [test-name (truncate-string (test-runner-test-name runner))])
   (cond
    [was-error?
    (unless (equal? (test-runner-aux-value runner) 'error)
@@ -225,11 +243,11 @@ When no name is provided to a test-<equality-pred> test,
                          (format port " PASSED")))]))))
 ))
 
-(@ "At the end of each group, we must update the passed and failed count
-as well as reset the |test-runner-aux-value| so that the next test-group
-can be recorded correctly as a problem set."
-(@> |On-group-end verbose| (capture runner port student-port 
-             passed-count failed-count)
+(@ "At the end of each group, the test-runner must update the passed
+and failed count as well as reset the |test-runner-aux-value| to \\#f so
+that the next |test-group| can be recorded independently of the last
+|test-group|."
+(@> |On-group-end verbose| (capture runner port student-port  passed-count failed-count)
 (test-runner-on-group-end! runner
   (lambda (runner)         
     (when (equal? (test-runner-aux-value runner) 'pass)
@@ -253,40 +271,33 @@ can be recorded correctly as a problem set."
 ))
 
 (@ "When the group begins, we need to print the proper headers. If its
-top-level, which means that this is the first test-group, it prints
-the name of the test-group, otherwise it prints the group name."
-(@> |On-group-begin verbose|
- (capture runner port student-port suite-name)
+top-level prints the \"Results for |suite-name|\", otherwise it prints
+the \"|suite-name|:\" using the convention |Print Group|."
+(@> |On-group-begin verbose| (capture runner p-port s-port suite-name)
  (test-runner-on-group-begin! runner
     (lambda (runner suite-name count)    
       (if (@< |top-level| runner)
           (begin
-            (format port "Results for ~d ~%" suite-name)
-            (format student-port "Results for ~d ~%" suite-name))
+            (format p-port "Results for ~d ~%" suite-name)
+            (format s-port "Results for ~d ~%" suite-name))
           (begin 
-            (@< |Print Group| port suite-name)
-            (@< |Print Group| student-port suite-name)))))
+            (@< |Print Group| p-port suite-name)
+            (@< |Print Group| s-port suite-name)))))
 ))
-
-(@ "Finally, the runner pritns the results and closes the ports."
+ 
+(@ "Finally, the runner prints the results and closes the ports."
 (@> |On-final verbose|
-     (capture runner port student-port passed-count failed-count missing-count)
+     (capture runner p-port s-port passed-count failed-count missing-count)
       (test-runner-on-final! runner
        (lambda (runner)
      (@< |Print End Results| 
           runner port passed-count failed-count missing-count)
-     (@< |Print Successful Load| student-port)
-     (close-output-port student-port)
-     (close-output-port port)))
-))
-)
-
-(@ "Push test-runner-verbose to the top level"
-(@c
-(@< |Define test-runner-verbose|)
+     (@< |Print Successful Load| s-port)
+     (close-output-port s-port)
+     (close-output-port p-port)))
 ))
 
-(@* "Implementation of |test-runner-quiet|"
+(@* "Test-runner-quiet implementation"
 "Each of the following subsections give a specific part of the
 implementation of the test-runner."
 )
@@ -294,10 +305,8 @@ implementation of the test-runner."
 (@ "The result of each test is handled in the |test-runner-quiet| by
 checking to see which type of result occured: an error, a fail, or a
 pass. It is very similar to the |test-runner-verbose|, except nothing
-is printed in the result of a pass.
- \\medskip\\noindent
- When no name is provided to a test-<equality-pred> test, |test-runner-quiet|
-pretty-prints the full tested expression."
+is printed in the result of a pass, and only the first fail case is printed.
+"
 
 (@> |On-test-end quiet| (capture runner port student-port failed-count missing-count resulted? failed?)
 (test-runner-on-test-end! runner
@@ -306,7 +315,7 @@ pretty-prints the full tested expression."
       [was-error? (test-result-ref runner 'was-error?)]
       [expected (test-result-ref runner 'expected-value)]
       [actual (test-result-ref runner 'actual-value)]
-      [test-name (@< |Truncate test-name| (test-runner-test-name runner))])
+      [test-name (truncate-string (test-runner-test-name runner))])
   (cond
    [was-error?
    (unless failed?
@@ -327,7 +336,7 @@ pretty-prints the full tested expression."
 ))
 
 (@ "At the end of each group, we must update the passed and failed count
-as well as reset the |test-runner-aux-value| so that the next test-group
+as well as reset the |test-runner-aux-value| so that the next |test-group|
 can be recorded correctly as a problem set."
 (@> |On-group-end quiet| (capture runner passed-count failed-count failed?)
 (test-runner-on-group-end! runner
@@ -340,9 +349,8 @@ can be recorded correctly as a problem set."
 ))
 
 (@ "When the group begins, we need to print the proper headers. If its
-top-level, which means that this is the first test-group, it prints
-'Results for <group name>', otherwise it simply prints the group
-name."
+top-level, it prints \"Results for |suite-name|\", otherwise it doesn't
+print anything."
 (@> |On-group-begin quiet|
  (capture runner port student-port suite-name)
  (test-runner-on-group-begin! runner
@@ -367,27 +375,15 @@ call of the runner."
      (close-output-port port)))
 ))
 
-(@ "Push test-runner-quiet to the top level"
+(@ "Pushing the test-runners to the top level"
 (@c
+(@< |Define test-runner-verbose|)
 (@< |Define test-runner-quiet|)
 ))
 
 
-(@ "The |max-name-length| is a parameter you can use to control
-how long the maximum printed name of test cases can be before truncation. 
-This defaults to 80. A value of 0 denotes unlimited length."
-(@c
- (define max-name-length
-   (make-parameter
-    80
-    (lambda (int)
-      (assert (integer? int))
-      int)))
-))
-
-
-(@* "Common call-back functions"
-"These call-back functions are common to all test runners."
+(@* "Common Functions"
+"These call-back functions are common to more than one |test-runner|."
 
 (@ "There are times when the runner will find a bad count of tests within 
 a group. This is usually due to mismatched parens."
@@ -412,9 +408,10 @@ a message stating the fact."
 )
 
 (@* "Helpers"
-"These are helpers. |top-level| tells us if we are at the top level of the
-group stack. |get-port| turns a port into the appropriate file output port, 
-or throws an error if the port is invalid."
+"These are helpers for |test-runner| implementation. |top-level| tells
+us if we are at the top level of the group stack. |get-port| turns a
+port into the appropriate file output port, or throws an error if the
+port is invalid. "
 
 (@> |top-level| (capture runner)
      (null? (test-runner-group-stack runner))
@@ -428,97 +425,117 @@ or throws an error if the port is invalid."
          (file-options no-fail)
          (buffer-mode block)
          (native-transcoder))]
-    [else (error 'grade "unexpected output type, expected file or port"
-		 p)])))
+    [else (error 'test-runner "unexpected output type, expected file or port"
+		 p)])
+)
+)
 
+(@ "The |max-name-length| is a parameter you can use to control how
+long the maximum printed name of test cases can be before truncation.
+This defaults to 200. A value of 0 denotes unlimited
+length. |truncate-string| is used in order to truncate a given name to
+the |max-name-length|."
+(@> |Define name-length|
+ (define max-name-length
+   (make-parameter
+    200
+    (lambda (int)
+      (assert (integer? int))
+      int)))
+)
+(@> |Define truncate-string|
+(define (truncate-string name)
+   (if (and 
+        (string? name)
+        (> (string-length name) (max-name-length)))
+       (begin (string-truncate! name (max-name-length))
+              (string-append name "..."))
+       (if (char=? #\newline (string-ref name (sub1 (string-length name))))
+           (substring name 0 (sub1 (string-length name)))
+           name)))
+))
+
+(@ "Push these to the top-level"
+(@c
+(@< |Define name-length|)
+(@< |Define truncate-string|)
+))
 
 (@* "Printing Conventions"
-"These are conventions we can use when printing to a given port. This makes 
-printing easier by keeping them as conventions which we can reuse."
+"These are conventions you can use when printing to a given port to
+make your code shorter."
 
 (@> |Print result header| (capture port result resulted?)
-(if (and (or (equal? result 'error)
-             (equal? result 'fail))
-         (not resulted?))
-    (begin 
-      (format port "The following programs failed one or more tests:~%")
-      (set! resulted? #t)))
+    (if (and (or (equal? result 'error)
+                 (equal? result 'fail))
+             (not resulted?))
+        (begin 
+          (format port "The following programs failed one or more tests:~%")
+          (set! resulted? #t)))
 )
 
 (@> |Print error| (capture port runner failed-count missing-count)
-(let ([actual (test-result-ref runner 'actual-value)]
-      [test-name (@< |Truncate test-name| (test-runner-test-name runner))])
-  (unless (equal? (test-runner-aux-value runner) 'error)
-    (cond
-      [(timeout? actual) 
-       (begin
-         (format port " FAILED~%   Test:  ~d~%" test-name)
-         (format port "   Error: Probable Infinite Loop~%"))]
-       [(unbound-term? actual)
-	(begin
-	  (test-runner-aux-value! runner 'missing)
-	  (set! missing-count (add1 missing-count))
-	  (set! failed-count (sub1 failed-count))
-	  (format port " MISSING~%"))]
-       [else
-	(begin
-	  (format port " FAILED~%   Test:  ~d~%" test-name)
-	  (format port "   Error: ")
-	  (display-condition actual port)
-          (format port "~%"))])
-    (test-runner-aux-value! runner 'error)))
+    (let ([actual (test-result-ref runner 'actual-value)]
+          [test-name (truncate-string (test-runner-test-name runner))])
+      (unless (equal? (test-runner-aux-value runner) 'error)
+        (cond
+          [(timeout? actual) 
+           (begin
+             (format port " FAILED~%   Test:  ~d~%" test-name)
+             (format port "   Error: Probable Infinite Loop~%"))]
+          [(unbound-term? actual)
+           (begin
+             (test-runner-aux-value! runner 'missing)
+             (set! missing-count (add1 missing-count))
+             (set! failed-count (sub1 failed-count))
+             (format port " MISSING~%"))]
+          [(illegal-term? actual)
+           (format port " FAILED~%   Test:  ~d~%" test-name)
+           (format port "   Error: Illegal term ~a~%" (illegal-term-name actual))]
+          [else
+           (begin
+             (format port " FAILED~%   Test:  ~d~%" test-name)
+             (format port "   Error: ")
+             (display-condition actual port)
+             (format port "~%"))])
+        (test-runner-aux-value! runner 'error)))
 )
 
 (@> |Print Group| (capture port output)
-     (format port "~d:" output)
+    (format port "~d:" output)
 )
 
 (@> |Print full problem| (capture runner port student-port resulted?)
-(when (not (null? (test-runner-group-stack runner)))
-  (begin
-    (@< |Print to two ports| port student-port "~%")
-    (when (not (null? (cdr (test-runner-group-stack runner))))
-      (format student-port "  Problem ")
-      (@< |Print Group| student-port (cadr (test-runner-group-stack runner)))
-      (@< |Print Group| port (cadr (test-runner-group-stack runner)))
-      (format student-port " ")
-      (format port " "))
-    (@< |Print Group simple| student-port (car (test-runner-group-stack runner)))
-    (@< |Print Group| port (car (test-runner-group-stack runner)))))
+    (when (not (null? (test-runner-group-stack runner)))
+      (begin
+        (@< |Print to two ports| port student-port "~%")
+        (when (not (null? (cdr (test-runner-group-stack runner))))
+          (format student-port "  Problem ")
+          (@< |Print Group| student-port (cadr (test-runner-group-stack runner)))
+          (@< |Print Group| port (cadr (test-runner-group-stack runner)))
+          (format student-port " ")
+          (format port " "))
+        (@< |Print Group simple| student-port (car (test-runner-group-stack runner)))
+        (@< |Print Group| port (car (test-runner-group-stack runner)))))
 )
 
 (@> |Print Group simple| (capture port output)
-     (format port "~d" output)
+    (format port "~d" output)
 )
 
 (@> |Print End Results| (capture runner port 
                                  passed-count failed-count missing-count)
-     (format port "~%Test Results~%   Passed: ~d.~%   Failed: ~d. ~%   Missing: ~d. ~%"
-             passed-count failed-count missing-count)
+    (format port "~%Test Results~%   Passed: ~d.~%   Failed: ~d. ~%   Missing: ~d. ~%"
+            passed-count failed-count missing-count)
 )
 
 (@> |Print to two ports| (capture port1 port2 output)
-(format port1 output)
-(format port2 output)
+    (format port1 output)
+    (format port2 output)
 )
 
 (@> |Print Successful Load| (capture port)
-(format port "~%Your submission has successfully been loaded and autograded.")
-)
-
-(@> |Truncate test-name| (capture name)
-(begin 
-
-(if (and 
-     (string? name)
-     (> (string-length name) (max-name-length)))
-    (begin (string-truncate! name (max-name-length))
-	   (string-append name "..."))
-(if (char=? #\newline (string-ref name (sub1 (string-length name))))
-  (substring name 0 (sub1 (string-length name)))
-  name)
-))
-))
-)
+    (format port "~%Your submission has successfully been loaded and autograded.")
+)))
 
 
