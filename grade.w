@@ -46,6 +46,7 @@ tests on scheme code files."
   test-eqv
   test-eq
   test-approx
+  test-load
   test-begin test-end
   current-test-runner
   test-entry
@@ -486,8 +487,8 @@ your own test runners.
 \\medskip
 The |test-runner| is initialized to the |current-test-runner|, which
 is by default, |test-runner-quiet|, and can be changed by setting the
-|current-test-runner| to one of the runners defined in |(mags
-runners)| or by defining your own. Here is an example of grading with an
+|current-test-runner| to one of the runners defined in |(mags runners)| 
+or by defining your own. Here is an example of grading with an
 explicit test-runner:
 
 \\medskip
@@ -495,6 +496,7 @@ explicit test-runner:
 (parameterize ([current-test-runner (test-runner-quiet \"submission.graded\"
                                                        \"submission.mail\")])
  (grade \"submission.ss\"))
+|endverbatim
 
 \\medskip
 The full list of supported procedures, including more about
@@ -581,7 +583,7 @@ The engine will signal the error and fail the test.
 This chunk takes a name, the expected value, the |test-expr|
 to be evaluated, and either a |time-limit|. If the |test-expr| times
 out, we raise a |&timeout| exception. Else, we use an extension of the
-|(srfi :64)| tests, |test-pred|, with the given predicate..
+|(srfi :64)| tests, |test-pred|, with the given predicate.
 
 \\medskip
 Note: the |test-expr| is evaluated within the engine before it is sent
@@ -599,6 +601,7 @@ however. This might be improved.
       time-limit 
       (lambda (t v) v) 
       (lambda (c) (raise (timeout c))))]))
+
 (if name
     (test-pred pred? name expected (test-with-engine test-expr))
     (test-pred pred? expected (test-with-engine test-expr)))
@@ -636,11 +639,9 @@ Grade can take the following forms:
 \\medskip
 \\verbatim
 (grade submission)
-
-(grade (submission test-runner))
-(grade (submission test-runner) test-file)
-(grade (submission test-runner) test-file sandbox-name)
-(grade (submission test-runner) test-file sandbox-name time-limit)
+(grade submission  test-file)
+(grade submission  test-file sandbox-name)
+(grade submission  test-file sandbox-name time-limit)
 
 (grade submission test-file)
 (grade submission test-file sandbox-name)
@@ -649,7 +650,17 @@ Grade can take the following forms:
 
 \\medskip
 \\noindent
-If an argument is ommitted, |grade| will use the |(current-*)| parameter in its place.
+Grading a submission with a given test-runner:
+
+\\medskip
+\\verbatim
+> (parameterize ([current-test-runner (test-runner-* <args> ...)])
+     (grade \"submission.ss\"))
+|endverbatim
+
+\\medskip
+\\noindent
+If any argument is ommitted, |grade| will use the |(current-*)| parameter in its place.
 
 \\medskip
 The inputs should have the following properties:
@@ -710,16 +721,6 @@ Grading a submission with the (current-test-runner):
 |endverbatim
 
 \\medskip
-\\noindent
-Grading a submission with a given test-runner:
-
-\\medskip
-\\verbatim
-> (parameterize ([current-test-runner (test-runner-* <args> ...)])
-     (grade \"submission.ss\"))
-|endverbatim
-
-\\medskip
 Following are the definitions for these convenience parameters."
    
 (@ "The |current-time-limit| is a parameter that is used in the grading engine."
@@ -743,7 +744,7 @@ Following are the definitions for these convenience parameters."
     (list? ls)
     (for-all symbol? ls)))])
           (assert (list-of-symbols? x)))
- x)))
+        x)))
 ))
  
 (@ "The |current-test-file| is a parameter you can use to store the
@@ -755,7 +756,7 @@ path to the test file. The |test-file| is the file that contains
     (lambda (file)
       (assert (string? file))
       file)))
-))
+ ))
 )
 
 (@* "Grade: Implementation"
@@ -773,21 +774,8 @@ whichever way the test-runner has specified. This is done by
 creating a |test-load| form, which tests if a load fails or passes."
 
 (@> |Define internal grade macro| (export %grade)
-(define (%grade submission p-port s-port test-file sandbox-name time-limit)
-  (define (get-port p)
-    (cond
-      [(port? p) p]
-      [(string? p) 
-       (open-file-output-port p 
-         (file-options no-fail)
-         (buffer-mode block)
-         (native-transcoder))]
-      [else (error 'grade "unexpected output type, expected file or port"
-             p)]))
-  (let ([student-port (get-port s-port)]       
-        [port (get-port p-port)]
-        [sndbx (sandbox sandbox-name)])
-    (@< |Set appropriate test runner| port student-port)
+(define (%grade submission test-file sandbox-name time-limit)
+  (let ([sndbx (sandbox sandbox-name)])
     (parameterize ([counter (new-counter)]
 		   [current-sandbox sndbx]
 		   [current-submission-file submission]
@@ -807,28 +795,28 @@ creating a |test-load| form, which tests if a load fails or passes."
 (@> |Define grade| (export (grade %grade))
 
 (@< |Define internal grade macro|)
-(...
 (define-syntax grade
   (syntax-rules (%internal)
-    [(_ (submission pp sp) rest ...)
-     (grade %internal (submission pp sp) rest ...)]
-    [(_ submission rest ...) (string? (syntax->datum #'submission))
-     (grade %internal
-       (submission (string-append submission ".grade") (string-append submission ".mail"))
-       rest ...)]
-    [(_ %internal (submission pp sp))
-     (%grade submission pp sp 
+    [(_ submission)
+     (%grade submission 
        (current-test-file) 
        (current-sandbox-name) 
        (current-time-limit))]
-    [(_ %internal (submission pp sp) test-file)
-     (%grade submission pp sp test-file 
-       (current-sandbox-name) (current-time-limit))]
-    [(_ %internal (submission pp sp) test-file (sb-name ...))
-     (%grade submission pp sp test-file '(sb-name ...) 
+    [(_ submission rest ...)
+     (grade %internal submission rest ...)]
+    [(_ %internal submission)
+     (%grade submission 
+       (current-test-file) 
+       (current-sandbox-name) 
        (current-time-limit))]
-    [(_ %internal (submission pp sp) test-file (sb-name ...) time-limit)
-     (%grade submission pp sp test-file '(sb-name ...) time-limit)])))
+    [(_ %internal submission test-file)
+     (%grade submission test-file 
+       (current-sandbox-name) (current-time-limit))]
+    [(_ %internal submission test-file (sb-name ...))
+     (%grade submission test-file '(sb-name ...) 
+       (current-time-limit))]
+    [(_ %internal submission test-file (sb-name ...) time-limit)
+     (%grade submission test-file '(sb-name ...) time-limit)]))
 ))
 
 (@ "For grading, we need to set which test runner it will use. Right
@@ -982,8 +970,8 @@ refactored to use more straightforward tactics.
 "
 
 (@c
-(define not-bound (cons 'not-bound '()))
-(define not-evaled (cons 'not-evaled '()))
+(define not-bound '(not-bound))
+(define not-evaled '(not-evaled))
 (define (not-bound? x) (eq? not-bound x))
 (define (not-evaled? x) (eq? not-evaled x))
 (define-syntax define-from-environment
@@ -1123,7 +1111,7 @@ convenience to the user.
      [(< n 9) (loop (sub1 n) (cons #\I roman))]
      [(check-tier = n 9) (loop (- n 9) (cons #\I (cons #\X roman)))]
      [(check-tier = n 10) (loop (- n 10) (cons #\X roman))]
-     [else ""])))
+     [else "too high"])))
 
 (define (numeric->roman-lower-case numeric) 
   (define (check-tier rel? x y)
@@ -1141,7 +1129,7 @@ convenience to the user.
      [(< n 9) (loop (sub1 n) (cons #\i roman))]
      [(check-tier = n 9) (loop (- n 9) (cons #\i (cons #\x roman)))]
      [(check-tier = n 10) (loop (- n 10) (cons #\x roman))]
-     [else ""])))
+     [else "too high"])))
 
 (define (alphabetic-lower-case n)
   (integer->char (+ 96 n)))
@@ -1194,7 +1182,6 @@ is done by using a simple |counter| parameter that counts the number
 of test-groups seen in this environment so far."
 
 (@> |Define test-group| (export test-group)
-(...
 (define-syntax test-group
   (syntax-rules ()
      [(_ name test-or-expr ...)
@@ -1204,7 +1191,7 @@ of test-groups seen in this environment so far."
       (let ([i ((counter))])
         (parameterize ([counter (new-counter)]
                        [current-names (cons i (current-names))])
-          test-or-expr ...))])))
+          test-or-expr ...))]))
 ))
 
 (@* "Formatting: Forms"

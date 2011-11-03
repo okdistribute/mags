@@ -65,13 +65,14 @@ inefficient procedure.
   eval/sandbox
   load/sandbox
   library/sandbox
-  flag import
+  flag-error flag-warning import
   sandbox)
 (import (chezscheme) (srfi :64))
 
 (@* "Overview"
-"THis is an overview for the sandbox environment"
+"This is an overview for the sandbox environment. "
 )
+
 (@* "Condition Hierarchy"
 "These conditions are raised when certain problems arise in the
 evaluation of terms inside the sandbox environment. There are four
@@ -198,7 +199,7 @@ using environments."
 (datum->syntax #'k
   (environment-symbols
     (apply environment
-      (syntax->datum #'(imp (... ...))))))
+      (syntax->datum #'(imp ...)))))
 ))
 
 (@* "Evaluating code within Sandboxes"
@@ -251,7 +252,8 @@ to evaluate through the use of an engine. If the time expires,
 environment during a given amount of time. It takes three arguments:
 the file to load, the environment to load it in, and the given amount
 of time. It uses the same timeout engine defined above to |eval| each
-expression in the file"
+expression in the file. It checks to make sure the file is not loading
+anything extraneous as well."
 
 (@c
 (define (load/sandbox file env time)
@@ -261,7 +263,8 @@ expression in the file"
           (lambda ()
             (parameterize 
                 ([current-eval 
-                  (lambda (x . ignore) (unless (and (pair? x) (equal? (car x) 'load)) (compile x env)))])
+                  (lambda (x . ignore) (unless (equal? (car x) 'load)
+                                         (compile x env)))])
               (load file))))])
     (@< |Run Timeout Engine| eng time)))
 ))
@@ -278,15 +281,33 @@ expression in the file"
 
 
 (@
-"A flagged binding is one that a student should not be using, and
+"An |error flag| binding is one that a student should not be using, and
 that we want to explicitly check for, catch, and report. We do this by
 making the binding a macro that always expands into an error."
 
-(@> |Define flagged| (capture fid)
+(@> |Define error flag| (capture fid)
 #'(begin
     (define-syntax (fid x)
       #'(raise (illegal-term 'fid)))
-    (... ...))
+    ...)
+))
+
+(@
+"A |warning flag| binding is one that a student should not be using,
+and that we want to report to the test-runner. However, warning flags
+also still evaluate in addition to reporting. We do this by making the
+binding a macro ..."
+
+(@> |Define warning flag| (capture imp fid)
+(with-syntax ([(t ...) (generate-temporaries #'(fid ...))])
+  #'(module (fid ...)
+      (module names (fid ...) (import imp ...))
+      (import (rename names (fid t) ...))
+      (define-syntax (fid x)
+        #`(begin
+            (warningf 'fid "illegal term in ~a" '#,x)
+            t))
+      ...))
 ))
 
 (@ "|library/sandbox| does most of the work. It takes a list of
@@ -295,21 +316,21 @@ takes and loads them into a library to be used in the sandbox."
 
 (@c
 (define-syntax (library/sandbox x)
-  (syntax-case x (import flag)
-    [(k name (import imp ...) (flag fid ...))
+  (syntax-case x (import flag-error flag-warning)
+    [(k (name ...) (import imp ...) 
+        (flag-error fid-error ...) 
+        (flag-warning (import warning-imp ...) fid-warning ...))
       (with-implicit (k library export)
-        (with-syntax (
-            [(exp ...) (@< |Compute export list| k imp)])
-          #`(library name
-            (export fid ... exp ...)
-            (import imp ...
-              (only (chezscheme) 
-                define-syntax 
-                condition
-                make-message-condition)
-              (only (mags sandbox)
-                illegal-term))
-            #,(@< |Define flagged| fid))))]))
+        (with-syntax ([(exp ...) (@< |Compute export list| k imp)])
+          #`(begin 
+              (library (name ... support)
+                (export fid-error ... fid-warning ...)
+                (import (chezscheme) (only (mags sandbox) illegal-term))
+                #,(@< |Define error flag| fid-error)
+                #,(@< |Define warning flag| warning-imp fid-warning))
+              (library (name ...)
+                (export fid-error ... fid-warning ... exp ...)
+                (import imp ... (name ... support))))))]))
 ))
 
 
@@ -318,11 +339,18 @@ takes and loads them into a library to be used in the sandbox."
 should not be permitted in the environment."
 
 (@c
-(define-syntax flag
+(define-syntax flag-error
+  (lambda (x)
+    (errorf #f "misplaced aux keyword ~a"
+      (syntax->datum x))))
+
+(define-syntax flag-warning
   (lambda (x)
     (errorf #f "misplaced aux keyword ~a"
       (syntax->datum x))))
 ))
+
+
 
 (@ "|sandbox| is a small procedure that simply takes a name for an
 environment we want to be used in the sandbox, in effect making it

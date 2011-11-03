@@ -72,32 +72,33 @@ manipulation of a virtual filesystem for the sandbox."
     close-port))
 
 (@* "Overview"
-"This library creates a basic framework for a virtual filesystem for the sandbox.
-The advantage of this is to control and monitor space use 
-as well as allow for extensive manipulation without
-threatening the integrity or structure of the original filesystem. 
-\\medskip 
-\\noindent 
-The |(current-vfs)|is initialized to (dir \"/\"), and can be changed by
-simply using it as a parameter. Specifics about the |(current-vfs)| an be
-found in the following section, titled \"Virtual Filesystems\". You can
-use any of the r6rs convenience I/O and filesystem operations in this library.
+"This library creates a basic framework for the sandbox virtual file system.
+The purpose of this vfs is to control and monitor space use as well as
+allow for extensive manipulation without threatening the integrity or
+structure of the original filesystem.
 
+\\medskip 
+The |(current-vfs)|is initialized to (dir \"/\"), and can be changed by
+simply using it as a parameter. Specifics about the |(current-vfs)| can be
+found in the following section, titled \"Virtual Filesystems\". 
 ")
 
-(@* "Nodes"
+(@* "Files and Directories"
 "Nodes are representative of either files or directories. Files, which
-are pairs containing a name and contents, look like this: 
+are pairs containing a name and contents, look like this:
+
 \\medskip 
 \\verbatim
 > (file \"name\" . \"contents\")
 |endverbatim
+
 \\medskip
 \\noindent
 If the file has an {\\it open} port, the contents will be that
 port. When you write to a port that is open in a node and then close
 it, the port is replaced by whatever was written. The |(current-vfs)|
 is the current virtual filesystem. Here is an example of writing to a node:
+
 \\medskip
 \\verbatim
 > (current-vfs (file \"submission\" . \"Something\")
@@ -111,23 +112,28 @@ is the current virtual filesystem. Here is an example of writing to a node:
 > (current-vfs)
 (file \"submission\" . \"Something\")
 |endverbatim
-\\medskip
-When we close the 
+
 \\medskip
 \\noindent
-Directories are simply nodes that contain a list of other nodes 
-as their contents, for example:
+
+Directories are similar to file nodes, except they contain a list of
+other nodes in their contents, for example:
+
 \\medskip
 \\verbatim
 (dir \"/\"
-     (file \"submission\" . \"This is a submission file\")
+     (file \"Wee!\" . \"Writing to files is fun!\")
      (file \"foo\" . \"bar\")
-     (dir \"cd\"
-	  (file \"name\" . \"contents\")))
+     (dir \"This is a directory\"
+	  (file \"more files\" . \"contents\")
+          (dir \"Maybe another directory\"
+               (file \"Boom!\" . \"Yes, I told you they were fun.\"))))
 |endverbatim
+
 \\medskip
 \\noindent
 Here are some specific properties about nodes:
+
 \\medskip
 \\unorderedlist
 \\li Nodes are pairs.
@@ -137,19 +143,17 @@ either 'file or 'dir.\\smallskip
 {\\it Example: (file name . contents) and (dir (file name . contents))}
 \\li The |name| of a file or dir is a string representing the name.
 \\li The |contents| of a node can be one of two things: 
-\\smallskip
-\\noindent
 \\endunorderedlist)"
 
 (@* "Virtual Filesystems"
 "Virtual filesystems assure that we can keep the top-level filesystem intact while
-performing operations. 
+performing operations.
+
 \\medskip
-\\noindent
-|current-vfs| is a parameter that represents the current virtual
-filesystem that the sandbox is using. Each item in the list represents
-a |node|, which is essentially a path to the file which will be read
-into the sandbox. Specifics about nodes are explained in the above section."
+The |current-vfs| is a parameter that represents the current virtual
+filesystem that the sandbox is using. You can think of it as having a
+tree structure. Each item in the list must be a |node|, which is
+essentially a path to a file."
 
 (@c 
  (define current-vfs
@@ -188,10 +192,11 @@ into the sandbox. Specifics about nodes are explained in the above section."
 "When we create and continue to modify our virtual filesystem, we
 assume that we would want some way to retrieve all of the ports that
 are open in order to handle them accordingly.
+
 \\medskip
-\\noindent
 |all-open-virtual-ports| is a thunk that returns a list of all
 currently open virtual ports in the virtual filesystem.
+
 \\medskip
 \\verbatim
 > (current-vfs)
@@ -210,13 +215,13 @@ currently open virtual ports in the virtual filesystem.
 > (all-open-virtual-ports)
 (<output-port a> <output-port b>)
 |endverbatim
+
 \\medskip
 \\noindent
-Firstly, we must have added |nodes| to our |current-vfs|.  As stated
-earlier, each of these |nodes| represents files or directories.  To begin,
-|all-open-virtual-ports| pulls the nodes out of the |current-vfs| and
-loops over each node, collecting the open ports up into a list.  It is
-implemented as such:"
+In order to use |all-open-virtual-ports| we must have added |nodes| to
+our |current-vfs|. To begin, |all-open-virtual-ports| pulls the nodes
+out of the |current-vfs| and does a tree walk, collecting the open
+ports up into a list.  It is implemented as such:"
 
 (@> |Define all-open-virtual-ports|
 (export all-open-virtual-ports)
@@ -242,14 +247,15 @@ implemented as such:"
               node))])))))
 ))
 
-(@ "Handling the nodes in |all-open-virtual-ports|.
-\\smallskip\\noindent For handling file nodes, if the file is open, we
-grab the filename from the file. We then put the filename,
-current-directory, and file-contents together.  \\medskip\\noindent
+(@ "For handling file nodes, if the file is open, grab the filename
+from the file. We then put the filename, current-directory, and
+file-contents together.
+
+\\medskip
 After this, |cons| the result to the front of the current list that
-will be returned from |all-open-virtual-ports| once we are
-finished. Then we simply continue the loop over the |current-vfs|
-until we have completed the entire traverse of the list of nodes."
+will be returned from |all-open-virtual-ports|. Then continue the loop
+over the |current-vfs| until we have completed the entire traverse of
+the nodes."
 
 (@> |Handle File Node| (capture dir-loop nodes open-list cd node)
 (dir-loop 
@@ -266,9 +272,8 @@ until we have completed the entire traverse of the list of nodes."
 ))
 
 (@ "For handling Directory Nodes, we simply perform a |dir-loop| over
-the nested directory, then call |append| on that finished list of open
-nodes to the list that will be returned later after walking down
-the |current-vfs|. We then continue the traverse."
+the nested directory, then put the list of open nodes to the front of
+the accumulator. We then continue the traverse."
 
 (@> |Handle Directory Node| (capture dir-loop nodes open-list cd node)
 (dir-loop 
@@ -299,16 +304,15 @@ the |current-vfs|. We then continue the traverse."
 (test-end "all-open-virtual-ports")
 ))
 
-(@ "Let's make sure that |all-open-virtual-ports| gets into the top-level."
-
+(@ "Let's make sure that |all-open-virtual-ports| gets into the
+top-level."
 (@c
 (@< |Define all-open-virtual-ports|)
 ))
 
 (@* "Convenience Procedures"
 "These procedures are used as convenience procedures in the
-implementation of nodes, either predicates or accessors for
-specific fields within the nodes."
+implementation of nodes, either predicates or accessors."
 
 (@c
  (define (file? node)
@@ -372,12 +376,13 @@ specific fields within the nodes."
   (test-end "helpers")
 ))
 
-(@ "|path-lookup| takes one argument: a string representation of a
-path, and returns a node that represents that path  as a node which 
-can be either a file or directory or |#f| if a node can't be found with
-the given path.
+(@ "The following procedure, |path-lookup| takes one argument: a
+string representation of a path, and returns a node that represents
+that path as a node which can be either a file or directory or |#f| if
+a node can't be found with the given path.
 
-\\medskip\\verbatim
+\\medskip
+\\verbatim
 > (path-lookup path) => node or #f
 
 > (current-vfs)
@@ -430,10 +435,9 @@ the given path.
 ))
 
 (@ "Given the name of the file or directory we want to find and a list
-of |nodes|, this procedure finds the |node| that represents that path
-and then returns it. It also takes a third argument which represents a
-predicate, or what we are assuming what type of node it should be,
-either a file or dir."
+of |nodes|, |correct-node?| returns the |node| that represents the
+path.  It also takes a third argument which represents a predicate for
+what type of node it should be, either a file or dir."
 
 (@> |Lookup node| (capture name node-list node?)
 (define (correct-node? node)
@@ -498,12 +502,13 @@ means that we are enforcing a single access restriction on the file
 nodes.")
 
 (@* "Protecting from the overuse of space"
-"When writing to a |virtual-textual-output-port|, we need to
-make sure that we use a reasonable amount of space. In this sense, we
-must keep some type of record of how much space we have written so far
-to the port, in this case it is a parameter |current-vfs-space|. We
-also need a parameter which can be changed, that is, the max amount of
-space we wish to write, |max-vfs-space|."
+"When writing to a |virtual-textual-output-port|, we need to make sure
+that we use a reasonable amount of space. In this sense, we must keep
+some type of record of how much space we have written so far. We
+implement here a parameter |current-vfs-space|, which accumulates the
+current space that the vfs is using.  |max-vfs-space| is a parameter
+which can be changed by the user to represent the max amount of space. This
+defaults to 300."
 
 (@c
 (define current-vfs-space-use
@@ -522,14 +527,15 @@ space we wish to write, |max-vfs-space|."
 ))
 
 (@* "Rewriting Convenience I/O"
-"We can use these procedures to read from and write to files. This section overrides
-the (chezscheme) Convenience I/O to utilize the virtual filesystem.
-\\medskip\\noindent
-The new |open-input-file| and |open-output-file| take a path, and transform it
+"We can use these procedures to read from and write to files. This
+section overrides the Chez Scheme 8 Convenience I/O to utilize the
+virtual filesystem defined in this library.
+
+\\medskip
+These procedures, |open-input-file| and |open-output-file|, take a path and transform it
 into the respective node representation.  The node must be already
 present in the |current-vfs|, or the procedure throws an error.  Then,
-they open an input or output port by calling |make-virtual-input-port|
-on the node that was found from |path-lookup|."
+they open an input or output port with |make-virtual-input-port|."
 
 (@c
  (define (open-input-file path)
@@ -573,10 +579,10 @@ on the node that was found from |path-lookup|."
 	 (close-output-port port)))
 ))
 
-(@ "Filesystem operations"   
+(@ "Filesystem operations: These are currently under development."   
 
 (@c
- (trace-define (delete-file path)
+ (define (delete-file path)
    (let ([new-vfs
     (trace-let loop (
       [path path]

@@ -1,0 +1,85 @@
+;;; Issues Database
+;;
+;; Format
+;; Db    := (Entry*)
+;; Entry := (id class created-date status assigned title description
+;;           [revision])
+
+'((1 'sandbox (2011 3 1) 'fixed 'krmckelv
+   "Change default Sandbox"
+   "Default sandbox should be '(safe-scheme) to ensure a safe initial
+setup. It gives an error that the test-file is not in the source directories
+when attempting to use this '(safe-scheme) library.")
+ (2 'grade (2011 3 1) 'fixed #f
+   "Fix flags"
+   "Currently flags signal a load error, when they should signal a
+    runtime error that occurs during testing."
+   "bf0a49e8626bdf06b6fff0d198c02707c735d290")
+ (3 'i/o (2011 3 1) 'open #f
+   "Missing add file flags"
+   "It is not easy to add files to the VFS currently.")
+ (4 'i/o (2011 3 1) 'open #f
+   "Tester VFS API SUCKS"
+   "We need basic primitives for building and testing VFS code.")
+ (5 'grade (2011 3 1) 'fixed 'krmckelv
+   "Parameterize runner"
+   "Runner cannot be easily changed in the grade macro. We need to be
+able to easily change the runner."
+   "gouda: 858a22ca658c0f8d9bcd188a03229b4bdad9238f")
+ (6 'grade (2011 3 1) 'open #f
+   "Grade error handling"
+   "When using test-suite, errors are very difficult to debug. We
+   need to make it easier to see errors in the test files.")  
+ (7 'submission (2011 3 1) 'open #f
+   "Submission System"
+   "We need a submission system.")
+ (8 'packaging (2011 3 1) 'open #f
+   "Build documentation"
+   "It is difficult to understand how to build this thing.")
+ (9 'packaging (2011 3 1) 'open #f
+   "Documentation audit"
+   "General audit of our documentation to make sure that we are doing
+   the right things and so that everything is up to date.")
+ (10 'grade (2011 3 1) 'open #f
+   "Pull mags application into core"
+   "We should generalize the C211 mags grader into a full blown
+   application that we can distribute with the core.")
+ (11 'grade (2011 3 6) 'fixed #t
+   "Define-eq-test handling of unbound terms"
+   "Define-equality-test should not pass unbound term conditions directly to the 
+   procedure that will be using the expected and actual values."
+   (krmckelv (2011 3 7) "srfi :64 was executing the comparator, even on an exception."))
+ (12 'grade (2011 3 29) 'open #f
+   "Flags cause error, do not evaluate"
+   "Flagged terms should probably still evaluate the test cases in which they occur,
+   yet still send a notice to the test-runner that the flagged term was found")
+ (13 'runners (2011 4 5) 'open #f
+   "Runners need conventions"
+   "We have many different things to take into account when writing test runners. We need
+ to make this easy to do within the Mags framework. It would be nice to have a language 
+for creating test-runners as well as some default callbacks for error handling, for 
+   example.")
+ (14 'sandbox (2011 4 6) 'fixed 'krmckelv
+   "Current-sandbox is unchangable"
+   "The current-sandbox-name, when set to a custom library/sandbox, does not reflect the expected
+   sandbox upon testing. The expected sandbox is actually just '(chezscheme).")
+ (15 'grade (2011 4 26) 'open #f
+   "Pretty-printing of automatically generated test-names"
+   "The pretty-printing of tests isn't very pretty. We should have some conventions
+   for printing matrixes, trees.")
+ (16 'grade (2011 4 26) 'fixed 'krmckelv
+   "Tests error handling"
+   "When your define-equality-tests fails and crashes (srfi :64), you should get
+   an error message to this effect. Right now, it just does nothing.")
+ (17 'grade (2011 5 6) 'open #f
+   "test-groups should catch errors"
+   "if there are errors in test-groups, those should FAIL with an error, rather
+   than just error and stop grading completely.")
+ (18 'grade (2011 7 17) 'open #f
+   "overriding built-in procedures"
+   "we want to be able to test a student's procedure that has an existing built-in 
+   implementation, and use their implementation instead")
+ (19 'grade (2011 7 17) 'open #f
+   "expected and actual values with strings"
+   "the expected and actual values remove the quotes from strings as seen in the report"))
+

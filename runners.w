@@ -205,8 +205,8 @@ output to the professor and the other to the student"
 )
 
 (@* "Test-runner-verbose implementation"
-"The following sections contain the implementation of the callback
-functions used in the |test-runner-verbose|."
+"The following sections contain the implementation of the specific
+functions used in the definition of |test-runner-verbose|."
 )
 
 (@ "This chunk handles the result of each test in the
@@ -272,7 +272,7 @@ that the next |test-group| can be recorded independently of the last
 
 (@ "When the group begins, we need to print the proper headers. If its
 top-level prints the \"Results for |suite-name|\", otherwise it prints
-the \"|suite-name|:\" using the convention |Print Group|."
+the \"|suite-name|:\" using the |Print Group| convention."
 (@> |On-group-begin verbose| (capture runner p-port s-port suite-name)
  (test-runner-on-group-begin! runner
     (lambda (runner suite-name count)    
@@ -291,7 +291,7 @@ the \"|suite-name|:\" using the convention |Print Group|."
       (test-runner-on-final! runner
        (lambda (runner)
      (@< |Print End Results| 
-          runner port passed-count failed-count missing-count)
+         runner p-port passed-count failed-count missing-count)
      (@< |Print Successful Load| s-port)
      (close-output-port s-port)
      (close-output-port p-port)))
@@ -435,7 +435,7 @@ long the maximum printed name of test cases can be before truncation.
 This defaults to 200. A value of 0 denotes unlimited
 length. |truncate-string| is used in order to truncate a given name to
 the |max-name-length|."
-(@> |Define name-length|
+(@> |Define name-length| (export max-name-length)
  (define max-name-length
    (make-parameter
     200
@@ -443,8 +443,8 @@ the |max-name-length|."
       (assert (integer? int))
       int)))
 )
-(@> |Define truncate-string|
-(define (truncate-string name)
+(@> |Define truncate-string| (export truncate-string)
+(define (truncate-string name) 
    (if (and 
         (string? name)
         (> (string-length name) (max-name-length)))
