@@ -1,101 +1,54 @@
-Todo list and Schedule/Progress Sheet
-
-Total Weeks for the Project: 13
-
-Stage 1: Primitive Sandbox (Complete)
-
-	From: September 13th
-	To: September 27th
-	Total Time: 2 Weeks
+Primitive Sandbox (Complete)
 
 	Description
 		Implement basic sandbox without I/O sandboxing. Deal
 		with timeouts and illegal procedures. Allow for the
 		translation of illegal forms to legal forms automatically.
 
-Stage 2: I/O Sandboxing (Complete)
-
-	From: September 27th
-	To: October 4th
-	Total Time: 1 Week
+I/O Sandboxing (In Progress)
 
 	Description
 		Add I/O to sandboxing so that the file system is in a
 		safe state at all times. Make sure that you can prevent
 		overusing space, and so forth.
 
-Stage 3: Testing Framework (Complete)
-
-	From: October 4th
-	To: October 11th
-	Total Time: 1 Week
+Testing Framework (Complete)
 
 	Description
 		Examine and implement a suitable testing framework
 		abstraction, possibly using an existing system.
 
-Stage 4: Random Testing Idioms (Complete)
-
-	From: October 11th
-	To: October 18th
-	Total Time: 1 Week
+Random Testing Idioms (Complete)
 
 	Description
 		Develop idioms and procedures for dealing with random
 		testing of procedures.
 
-Stage 5: Pretty-printing Results (In Progress)
-
-	From: October 18th
-	To: October 25th
-	Total Time: 1 Week
+Pretty Test Runners (In Progress)
 
 	Description
-		Implement forms for doing pretty printing of test results
+		Implement test runners for doing pretty printing of test results
 		in a form that can be dealt with on the Web and other
-		formats.
+		formats. 
 
-Details for completion:
-   * Make printing prettier
 
-Stage 6: Vincent Submission System (Incomplete)
-
-	From: October 25th
-	To: November 8th
-	Total Time: 2 Weeks
+Vincent Submission System (Incomplete)
 
 	Description
-		Implement the basic Vincent submission system in a
+                Implement a basic submission system in a
 		convenient way that is efficient and reliable.
 
-Details for completion:
-   * Deploy on real assignment submissions
 
-Stage 7: Vincent Filtering (Incomplete)
-
-	From: November 8th
-	To: November 15th
-	Total Time: 1 Week
+Vincent Filtering (Incomplete)
 
 	Description
-		Implement Vincent filters to permit autograding to be
+		Implement filters to permit autograding to be
 		enabled automatically. Make sure to support public and
 		private filters as well as determining when a filter
 		failure or bad result should stop the continuation of
 		the submission or not.
 
-Final Stage: Testing (Incomplete)
-
-	From: November 22nd
-	To: December 13th
-	Total Time: 3 Weeks
+Testing (In Progress)
 
 	Description
-		Handles final Beta testing and product deployment. Fix
-		last minute bugs and do any final tweaking. No
-		introduction of new features or capabilities.
-
-Implement a shell script / boot script for grading 
-    * Add to a new branch for edu.indiana.c211
-    * Should extract all submission names in /a*/hand-ins/
-    * Test on Chezscheme 8.1
+		Handles final Beta testing and product deployment.
