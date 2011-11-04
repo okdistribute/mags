@@ -273,9 +273,10 @@ anything extraneous as well."
 (@> |Test load/sandbox|
 (test-begin "test-load/sandbox")
 (let ()
-  (define file "example_tests/example_a10/c211-lib.ss")
-  (define sdbx (sandbox '(only (chezscheme) iota)))
-  (test-assert "load/sandbox can open c211-lib with 1000 time"))
+  (define file "tests/submission.ss")
+  (define sdbx (sandbox '(chezscheme)))
+  (load/sandbox file sdbx 1200000)
+  (test-equal '((1 2 3) 1 2 3) (eval '(append '(1 2 3) '(1 2 3)) sdbx)))
 (test-end "test-load/sandbox")
 ))
 
