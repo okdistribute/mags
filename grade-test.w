@@ -1,6 +1,10 @@
 #!chezscheme
 
 (load "load.w")
+
+(run-sandbox-tests)
+(run-grade-tests)
+
 (cd "tests")
 (current-test-file "assignment.ss")
 

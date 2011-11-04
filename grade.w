@@ -613,11 +613,9 @@ however. This might be improved.
 (test-begin "equality")
 (let ()
   (define-equality-test foobar eq?)
-  (foobar "infinte loop" '() (let loop ([i 0]) (loop (add1 i))))
+  (foobar "should fail, infinte loop" '() (let loop ([i 0]) (loop (add1 i))))
   (foobar "should pass" 3 3)
-  (foobar "should fail, w/ iota" '(0 1 2 3 4) (iota 5))
-  (foobar "should fail numbers" 3 6)
-  (foobar "should fail2 strings" "" "1"))
+  (foobar "should fail" '(0 1 2 3 4) (iota 5)))
 (test-end "equality")
 ))
 
@@ -1355,7 +1353,6 @@ library."
   (test-equal "counter" 1 ((counter)))
   (test-equal "render-num" 3 (render-num 3 0))
   (test-equal "render-num depth 1" #\b (render-num 2 1))
-  (test-equal "render-num depth 2" #\A (render-num 1 2))
   (test-end "Formatters")
 )
 ))
@@ -1364,9 +1361,9 @@ library."
 
 (@c
 (define (run-grade-tests)
-  (test-begin "Grade")
+  (test-begin "grade tests")
   (@< |Test equality tester form|)
   (@< |Test formatters|)
-  (test-end "Grade"))
+  (test-end "grade tests"))
 ))
 )

@@ -8,4 +8,4 @@ io.w: sandbox i/o framework
 
 
 load.w: loads and imports all autograder files
-grade-test.w: tests with output to tests/a10/submission.grade
+grade-test.w: easy way to run tests
