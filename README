@@ -8,7 +8,7 @@ sandbox.w: sandbox framework
 io.w: sandbox i/o framework
 
 load.w: loads and imports all autograder files
-grade-test.w: easy way to run tests
+test.w: easy way to run tests
 
 
 
