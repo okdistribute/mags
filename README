@@ -1,11 +1,14 @@
 README
-You need chezweb and (srfi :64) to use this autograder.
+You need Chezweb and (srfi :64) to use this autograder. 
 
+Framework:
 grade.w: mags grader
 runners.w: (srfi :64) test runners
 sandbox.w: sandbox framework
 io.w: sandbox i/o framework
 
-
 load.w: loads and imports all autograder files
 grade-test.w: easy way to run tests
+
+
+
