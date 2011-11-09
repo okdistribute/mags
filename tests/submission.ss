@@ -2,6 +2,10 @@
   (lambda (x y)
     (+ x y)))
 
-(define append
-  (lambda (ls1 ls2)
-    (cons ls1 ls2)))
+(module (binding)
+        
+        (define binding
+          (lambda (ls1 ls)
+            (append ls1 ls)))
+
+        (define append cons))
