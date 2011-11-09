@@ -909,24 +909,9 @@ safety to the entire system.
 
 \\noindent
 The |deps| should be a list of strings pointing to files that should be loaded
-before the submission is loaded into the sandbox. The expansion of
-|define-from-submission| looks something like the following:
+before the submission is loaded into the sandbox.
 
-\\medskip\\verbatim
-(begin
-  (define dummy 
-    (begin 
-      (load deps eval-in-sandbox) ...
-      (load/sandbox 
-	(current-submission-file) 
-	(current-sandbox) 
-	(current-time-limit))
-      (void)))
-  (define-from-environment id1 (current-sandbox))
-  ...)
-|endverbatim
 \\medskip
-
 \\noindent
 Obviously, the loading of the dependencies is a little more
 sophisticated in the actual macro. Particularly, we want to signal
@@ -943,17 +928,15 @@ the submission resides."
      (and (for-all identifier? #'(id ...))
 	  (for-all string? (map syntax->datum #'(deps ...))))
      (begin
-       (define dummy
-	 (begin
-	   (test-load deps 
-	     (load deps (lambda (exp) (eval exp (current-sandbox)))))
-	   ...
-	   (test-load (current-submission-file)
-	     (load/sandbox 
-	       (current-submission-file)
-	       (current-sandbox)
-	       (current-time-limit)))
-	   (void)))
+       (test-load deps 
+                  (load deps (lambda (exp) (eval exp (current-sandbox)))))
+       ...
+       (test-load (current-submission-file)
+                  (load/sandbox 
+                   (current-submission-file)
+                   (current-sandbox)
+                   (current-time-limit)))
+       (void)
        (define-from-environment id (current-sandbox))
        ...)]))
 ))
