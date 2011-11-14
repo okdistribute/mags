@@ -928,6 +928,7 @@ the submission resides."
      (and (for-all identifier? #'(id ...))
 	  (for-all string? (map syntax->datum #'(deps ...))))
      (begin
+       (revert-interaction-semantics (current-sandbox))
        (test-load deps 
                   (load deps (lambda (exp) (eval exp (current-sandbox)))))
        ...
