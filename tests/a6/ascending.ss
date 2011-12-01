@@ -1,0 +1,13 @@
+(test-group "ascending?"
+	(test-equal #t (ascending? '()) )
+   	(test-equal #t (ascending? '(1 2 3)) )
+   	(test-equal #t (ascending? '(1 11 23)) )
+   	(test-equal #f (ascending? '(4 3 2 1)) )
+   	(test-equal #f (ascending? '(4 8 2 6)) )
+   	(test-equal #t (ascending? '(-5 0 5)) )
+   	(test-equal #t (ascending? '(1.1 1.2 1.3)) )
+   	(test-equal #t (ascending? '(0)) )
+	(test-equal #t (ascending? '(1 4)) )
+	(test-equal #t (ascending? '(1 3)) )
+	(test-equal #t (ascending? '(-1 1)) )
+	(test-equal #f (ascending? '(0 1 2 3 4 5 6 7 8 9 10 11 12 0)) )) 
