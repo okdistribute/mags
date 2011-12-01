@@ -11,9 +11,9 @@
 (parameterize ([current-test-runner (test-runner-quiet (current-output-port) "submission.mail")])
               (grade "submission.ss"))
 
-(cd "a6")
+(cd "infinite")
 
-(current-test-file "a6.ss") 
+(current-test-file "infinite.ss") 
 
 (parameterize ([current-test-runner (test-runner-quiet (current-output-port) "infinite.mail")])
               (grade "infinite.ss"))
