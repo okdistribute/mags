@@ -53,4 +53,26 @@ file system, space usage will be able to be controlled as well as
 the ability to maintain the integrity of the top-level filesystem.
 
 
+@* Current Virtual Filesystem
+The following creates a parameter that represents the current virtual 
+filesystem that is being used. It has the structure of a tree with a
+root node (name of directory), a left node which contains a list of 
+files in the current directory, and a right node which contains a list
+of directories, all of which follow the same format mentioned above.
+
+(define virtual-filesystem
+   (make-parameter
+      (tree '/ (empty-tree) (empty-tree))
+      (lambda (x)
+         (assert (tree? x))
+         x)))
+
+@ Test cases for |current-vfs|
+
+<insert test cases here>
+
+@* Files and Directories
+
+
+
      
