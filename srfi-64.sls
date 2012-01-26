@@ -40,7 +40,7 @@
 ;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
-(library (p423 srfi-64)
+(library (srfi-64)
   (export test-begin test-group
 	  test-end test-assert test-eqv test-eq test-equal
 	  test-approximate test-assert test-error test-apply test-with-runner
