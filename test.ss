@@ -1,6 +1,6 @@
 #!chezscheme
 
-(load "load.w")
+(load "load.ss")
 
 (run-sandbox-tests)
 (run-grade-tests)
@@ -11,11 +11,5 @@
 (parameterize ([current-test-runner (test-runner-quiet (current-output-port) "submission.mail")])
               (grade "submission.ss"))
 
-(cd "infinite")
-
-(current-test-file "infinite.ss") 
-
-(parameterize ([current-test-runner (test-runner-quiet (current-output-port) "infinite.mail")])
-              (grade "infinite.ss"))
 
 (cd "../..")
