@@ -23,7 +23,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 }
 
-@* Introduction
+@* Introduction.
 This library contains procedures for constructing and 
 manipulating a virtual file system for a sandbox environment.
 
@@ -43,7 +43,7 @@ manipulating a virtual file system for a sandbox environment.
          with-input-from-file
          with-output-to-file
          close-port))
-   (include "filesystemADT.ss"))
+   (include "filesystemRecord.ss"))
 
 @* Overview.
 This library creates a sandbox virtual file system. The main purpose
@@ -52,26 +52,429 @@ scheme code that can input/output to files. By creating a virtual
 file system, space usage will be able to be controlled as well as
 the ability to maintain the integrity of the top-level filesystem.
 
+@* I/O Operations.
+Listed below are the I/O operations that are going to be used when 
+creating, managing, and manipulating the virtual filsystem that this
+library outputs. As we are working with virtual filesystems, there
+will be some procedures that will need to be rewritten to allow
+for accessing ports on the virtual filesystem. However, there
+are others that can remain as they are, as they only touch ports.
 
-@* Current Virtual Filesystem
-The following creates a parameter that represents the current virtual 
-filesystem that is being used. It has the structure of a tree with a
-root node (name of directory), a left node which contains a list of 
-files in the current directory, and a right node which contains a list
-of directories, all of which follow the same format mentioned above.
 
+@ Procedures that require new definitions.
+
+
+\medskip \noindent {\tt open-file-input-port}
+\medskip \indent The above procedure takes a path, file-options, 
+a buffer mode, and a transcoder and opens an input port at a 
+specific location that you give for path. This procedure touches
+a file
+
+\medskip \noindent {\tt open-file-output-port}
+\medskip \indent The above procedure takes a path, file-options, a 
+buffer mode, and a transcoder and opens an output port at a specific 
+location that you give for path. This procedure touches a file.
+
+\medskip \noindent {\tt open-file-input/output-port}
+\medskip \indent The above procedure takes a path, file-options, a 
+buffer mode, and a transcoder and opens an input/output port for a 
+file at a specific location that you give for path. This procedure 
+touches a file.
+
+\medskip \noindent {\tt open-input-file}
+\medskip \indent This procedure opens a port to a specific path, as if
+by using open-file-input-port with default options. This procedure 
+touches a file.
+
+\medskip \noindent {\tt open-output-file}
+\medskip \indent open-output-file opens a port to a specific path, as if
+by using open-file-output-port with default options. This procedure
+touches a file.
+
+\medskip \noindent {\tt call-with-input-file}
+\medskip \indent This procedure takes a path and a procedure. It opens
+an input port as if by using open-file-input-port and then passes
+it to the subsequent procedure. This procedure touches a file.
+
+\medskip \noindent {\tt call-with-output-file}
+\medskip \indent This procedure takes a path and a procedure. It opens
+and input port as if by using open-file-output-port and then passes it
+to the subsequent procedure. This procedure touches a file.
+
+\medskip \noindent {\tt with-input-from-file}
+\medskip \indent This procedure takes a path and a thunk (a procedure
+that takes zero arguments). It opens an input port temporarily, as if by 
+using open-file-input-port while the thunk runs. If thunk returns, the 
+port is closed and the current input port is restored to its previous 
+value. This procedure touches a file.
+
+\medskip \noindent {\tt with-output-to-file}
+\medskip \indent This procedure takes a path and a thunk (a procedure
+that takes zero arguments). It opens an output port temporarily, as if 
+by using open-file-output-port while the thunk runs. If thunk returns,
+the port is closed and the current output port is restored to its previous
+value. This procedure touches a file. 
+
+\medskip \noindent {\tt file-exists?}
+\medskip \indent This predicate takes a path and returns true if the 
+file exists, and false if it doesn't. This predicate touches a file.
+
+\medskip \noindent {\tt delete-file}
+\medskip \indent This procedure takes a path represented by a string
+and removes the file if it exists and can be deleted. If otherwise, it
+returns an error. This procedure touches a file.
+
+
+@ Procedures that don't require redefinitions.
+
+
+\medskip \noindent {\tt current-input-port}
+\medskip \indent This procedure takes zero arguments and returns 
+the input port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt current-output-port}
+\medskip \indent This procedure takes zero arguments and returns 
+the output port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt port?}
+\medskip \indent This predicate takes one argument and returns 
+whether it is a port or not. This predicate touches a port.
+
+\medskip \noindent {\tt close-port}
+\medskip \indent This procedure takes a port and closes it. This 
+procedure touches a port.
+
+\medskip \noindent {\tt read}
+\medskip \indent This procedure takes a port and returns a Scheme datum
+object or an eof object that is read from the file. Read is different
+from get-datum in the fact that in the chance that an input port is not
+specified, it defaults to the current input port. This procedure touches
+a port.
+
+\medskip \noindent {\tt read-char}
+\medskip \indent This procedure takes a port and returns the next
+character from the port. read-char is different from get-char in the 
+fact that if an input port is not supplied, it defaults to the current
+input port. This procedure touches a port.
+
+\medskip \noindent {\tt peek-char}
+\medskip \indent This procedure takes a port and returns the next
+character form the port. peek-char is different from lookahead-char
+in the fact that if an input port is not supplied, it default to the 
+current input port. This procedure touches a port.
+
+\medskip \noindent {\tt write}
+\medskip \indent This procedure takes an object and an output port and
+writes the object to the output port specified. write is different from
+put-datum by the fact that if no output port is specified, it defaults
+to the current output port. This procedure touches a port.
+
+\medskip \noindent {\tt display}
+\medskip \indent Similar to write, this procedure takes an object and
+an output port and write to prementioned port. However, it differs from
+write by printing strings and characters as if by using put-string
+or put-char (it prints strings and chars without their special characters
+syntax). This procedure touches a port.
+
+\medskip \noindent {\tt write-char}his procedure takes zero arguments and returns 
+the output port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt port?}
+\medskip \indent This predicate takes one argument and returns 
+whether it is a port or not. This predicate touches a port.
+
+\medskip \noindent {\tt close-port}
+\medskip \indent This procedure takes a port and closes it. This 
+procedure touches a port.
+
+\medskip \noindent {\tt read}
+\medskip \indent This procedure takes a port andhis procedure takes zero arguments and returns 
+the output port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt port?}
+\medskip \indent This predicate takes one argument and returns 
+whether it is a port or not. This predicate touches a port.
+
+\medskip \noindent {\tt close-port}
+\medskip \indent This procedure takes a port and closes it. This 
+procedure touches a port.
+
+\medskip \noindent {\tt read}
+\medskip \indent This procedure takes a port and returns a Scheme datum
+object or an eof object that is read from the file. Read is different
+from get-datum in the fact that in the chance that an input port is not
+specified, it defaults to the current input port. This procedure touches
+a port.
+
+\medskip \noindent {\tt read-char}
+\medskip \indent This procedure takes a port and returns the next
+character from the port. read-char is different from get-char in the 
+fact that if an input port is not supplied, it defaults to the current
+input port. This procedure touches a port.
+
+\medskip \noindent {\tt peek-char}
+\medskip \indent This procedure takes a port and returns the next
+character form the port. peek-char is different from lookahead-char
+in the fact that if an input port is not supplied, it default to the 
+current input port. This procedure touches a port.
+
+\medskip \noindent {\tt write}
+\medskip \indent This procedure takes an object and an output port and
+writes the object to the output port specified. write is different from
+put-datum by the fact that if no output port is specified, it defaults
+to the current output port. This procedure touches a port.
+
+\medskip \noindent {\tt display}
+\medskip \indent Similar to write, this procedure takes an object and
+an output port and write to prementioned port. However, it differs from
+write by printing strings and characters as if by using put-string
+or put-char (it prints strings and chars without their special characters
+syntax). This procedure touches a port.
+
+\medskip \noindent {\tt write-char}
+\medskip \noindent This procedure takes a char and an output port and
+writes the char to the file in the open port. This procedure is similar
+to put-char, differing in the fact that if no output port is specified,
+it will default to the current output port. This procedure touches
+a port. returns a Scheme datum
+object or an eof object that is read from the file. Read is different
+from get-datum in the fact that in the chance that an input port is not
+specified, it defaults to the current input port. This procedure touches
+a port.
+
+\medskip \noindent {\tt read-char}
+\medskip \indent This procedure takes a port and returns the next
+character from the port. read-char is different from get-char in the 
+fact that if an input port is not supplied, it defaults to the current
+input port. This procedure touches a port.
+
+\medskip \noindent {\tt peek-char}
+\medskip \indent This procedure takes a port and returns the next
+character form the port. peek-char is different from lookahead-char
+in the fact that if an input port is not supplied, it default to the 
+current input port. This procedure touches a port.
+
+\medskip \noindent {\tt write}
+\medskip \indent This procedure takes an object and an output port and
+writes the object to the output port specified. write is different from
+put-datum by the fact that if no output port is specified, it defaults
+to the current output port. This procedure touches a port.
+
+\medskip \noindent {\tt display}
+\medskip \indent Similar to write, this procedure takes an object and
+an output port and write to prementioned port. However, it differs from
+write by printing strings and characters as if by using put-string
+or put-char (it prints strings and chars without their special characters
+syntax). This procedure touches a port.
+
+\medskip \noindent {\tt write-char}
+\medskip \noindent This procedure takes a char and an output port and
+writes the char to the file in the open port. This procedure is similar
+to put-char, differing in the fact that if no output port is specified,
+it will default to the current output port. This procedure touches
+a port.
+\medskip \noindent This procedure takes a char and an output port and
+writes the char to the file in the open port. This procedure is similar
+to put-char, differing in the fact that if no output port is specified,
+it will default to the current output port. This procedure touches
+a port.
+
+\medskip \noindent {\tt close-input-port}
+\medskip \indent This procedure takes an input port and performs the
+procedure of closing the port. This procedure is equivalent to the
+close-port procedure. This procedure touches a port.
+
+\medskip \noindent {\tt close-output-port}
+\medskip \indent This procedure takes an output port and performs the
+procedure of closing the port. This procedure is equivalent to the
+close-port procedure. This procedure touches a port.
+
+
+@* Current Virtual Filesystem.
+The following creates a parameter that represents the current virtual
+filesystem that is being used. This virtual filesystem is a unique
+ADT created by using records. The filesystem record holds a list
+of nodes held in the root level of the filesystem. These nodes can be 
+either files or directories.
+
+
+@p
+(define-record-type filesystem
+   (fields (mutable filelist fs-contents fs-contents!))
+      (protocol
+         (lambda (n)
+            (lambda (filelist)
+               (unless (list? filelist)
+                  (error 'make-filesystem "filelist is not a list" filelist))
+               (n filelist)))))
+
+@p
 (define virtual-filesystem
    (make-parameter
-      (tree '/ (empty-tree) (empty-tree))
+      (make-filesystem '())
       (lambda (x)
-         (assert (tree? x))
+         (assert (filesystem? x))
          x)))
 
-@ Test cases for |current-vfs|
+@ Test cases for the Virtual Filesystem.
 
-<insert test cases here>
+@(io-test.ss@>=
+(test-begin "test-virtual-filesystem")
+(define filesystem1
+   (make-filesystem 
+      '((file "file.txt" 12 "data" no) (mkdir "dir" 0))))
+(test-assert "filesystem1 == filesystem" (filesystem? filesystem1))
+(test-assert "file.txt == file" (file? (car (ls filesystem1))))
+(test-assert "dir == directory" (dir? (car (cdr (ls filsystem1)))))
 
-@* Files and Directories
+
+@* Files and Directories.
+Files and Directories are subtypes of nodes. As nodes, they both have
+names and size, but as separate subtypes they also have unique qualities 
+by which we can identify them. Files, in addition to having names and 
+sizes, have data and a field which denotes whether they are open or not.
+Directories, in addition to having names and sizes, have children, which 
+appear as others files and directories.
+
+@p
+(define-record-type node
+   (fields (mutable name) (mutable size))
+      (protocol
+         (lambda (n)
+            (lambda (name size)
+               (unless (string? name)
+                  (error 'make-node "name is not a string" name))
+               (unless (>= size 0)
+                  (error 'make-node "size is not a valid integer" size))
+               (n name size)))))
+
+@ |File| is a record-type that is used to create and manage a file-node.
+It contains everything that a node contains (name and size) as well as
+an extra field called data that contains the contents of the file in a
+string. Additionally, it also has a field that contains a boolean (true
+or false) that tells whether the file is open or not.
+
+@p
+(define-record-type file (parent node)
+   (fields (mutable data) (mutable open))
+      (protocol
+         (lambda (p)
+            (lambda (name size data)
+               (unless (string? data)
+                  (error 'make-file "data is not a string" data))
+               ((p name size) data #f)))))
+
+@ |Directory| is a type of node that contains a field "nodes" that 
+contains a list of nodes.
+
+@p
+(define-record-type directory (parent node)
+   (fields (mutable nodes))
+      (protocol
+         (lambda (p)
+            (lambda (name nodes)
+               (unless (list? nodes) 
+                  (error 'make-directory "not a list" nodes))
+               (unless (for-all node? nodes)
+                  (error 'make-directory "directory can only contain nodes" nodes))
+               ((p name 0) nodes)))))
+
+@* Virtual Ports.
+To access the files on our virtual filesystem for reading or writing,
+we have to utilize ports. However, since we have defined our own type
+of filesystem, we will also have to define our own port initialization.
+
+@p
+(define make-virtual-textual-input-port 
+   (lambda (node)
+      (assert (file? node))
+      (let ([file node]
+            [filename (file-name node)]
+            [filesize (file-size node)]
+            [filecontents (file-data node)]
+            [fileopen (file-open node)]
+            [portpos 0])
+         (when fileopen
+            (error 'filename "The file is already open."))
+         (assert (string? filecontents))
+         (let ([input-port
+                 (make-custom-textual-input-port filename
+                    (port-reader filecontents portpos)
+                    (lambda () portpos)
+                    (lambda (pos) (set! portpos pos))
+                    (lambda () (begin
+                               (file-data-set! file filecontents)
+                               (set! fileopen #f))))])
+            (begin
+               (file-data-set! file input-port)
+               (set! fileopen #t))
+            input-port)))
+
+@ The virtual input port reader maintains a current pointer into
+the file-contents string and moves through it, maintaining the 
+current port position (denoted port-pos).
+
+\medskip
+
+The reader fills the string starting at the start value that is passed
+and filling in at most n characters (less if the file isn't that long).
+The characters used are the ones from the string of the file. The
+count is a numerical value representing the number of characters that
+are pulled from the file-data string.
+
+@p
+(define port-reader
+   (capture filecontents portpos)
+   (lambda (string start n)
+      (let ([end (+ start n)]
+            [file-length (string-length filecontents)])
+         (let loop ([i start]
+                    [count 0]
+                    [port-i portpos])
+           (cond
+             [(>= port-i file-length) (set! port-pos port-i) count]
+             [(>= i end) (set! portpos port-i) count]
+             [else
+               (string-set! string i (string-ref filecontents port-i))
+               (loop (fx1+ i) (fx1+ count) (fx1+ port-i))]))))) 
+            
+@ Above, we created an input port to read data. Similarly, we need a 
+custom port to output data. This acts much the same way as the input
+port we created earlier, however
+
+@p
+(define make-virtual-textual-output-port
+   (lambda (node)
+      (assert (file? node)
+      (let ([file node]
+            [filename (file-name node)]
+            [filesize (file-size node)]
+            [filecontents (file-data node)]
+            [fileopen (file-open node)]
+            [contents '()])
+       (when fileopen
+         (error 'filename "The file is already open"))
+       (assert (string? filecontents))
+       (let ([output-port 
+                (make-custom-textual-output-port filename
+                   (port-writer contents)
+                   #f
+                   #f
+                   (lambda () (file-data-set! file 
+                                 (apply string-append 
+                                        (reverse contents)))))])
+       (file-data-set! file output-port)
+       output-port)))))
+
+@ Port Writer.
+
+@p
+(define port-writer
+   (capture contents)
+   (lambda (string start n)
+
+
+@* Index.
 
 
 

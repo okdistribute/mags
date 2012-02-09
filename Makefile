@@ -3,6 +3,9 @@
 .w.tex:
 	chezweave $< 
 
+.web.tex:
+	chezweave $< 
+
 .tex.dvi:
 	tex $<
 	tex $<
