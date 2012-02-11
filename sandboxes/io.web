@@ -377,6 +377,100 @@ contains a list of nodes.
                   (error 'make-directory "directory can only contain nodes" nodes))
                ((p name 0) nodes)))))
 
+@* Convenience Procedures.
+Defined below are a series of procedures that will help in maintaining,
+manipulating, and accessing your virtual filesystem.
+
+@ |path-break| is used to break the next node name from the
+path string so that the node can be searched for in the 
+filelist.
+
+@p
+(define path-break
+   (lambda (path)
+      (let loop ([i 0]
+                 [node ""]
+                 [length (string-length path)]
+                 [c 0])
+         (cond
+            [(= i length) node]
+            [(= c 2) node]
+            [(equal? "/" (substring path i (add1 i)))
+                (loop (add1 i) node length (add1 c))]
+            [else
+               (loop (add1 i) 
+                     (string-append 
+                        node 
+                        (substring path i (add1 i)))
+                     length
+                     c)])))) 
+
+@ |path-reduce| is used to trim the "already used" node of the
+front of the path string. This enables |path-break| to keep
+returning updated node names.
+
+@p
+(define path-reduce
+   (lambda (path)
+      (let loop ([i 0]
+                 [length (string-length path)]
+                 [c 0])
+         (cond
+            [(= i length) #f]
+            [(= c 2) (substring path (sub1 i) length)]
+            [(equal? "/" (substring path i (add1 i)))
+                (loop (add1 i) length (add1 c))]
+            [else
+               (loop (add1 i)
+                     length
+                     c)]))))
+
+@ |search-filelist| is a simple list recursion procedure that will
+find and return a node if one exists, and #f if the node doesn't
+exist.
+
+@p
+(define search-filelist
+   (lambda (filelist node)
+      (cond
+         [(null? filelist) #f]
+         [(equal? (car filelist) node) (car filelist)]
+         [else
+            (search-filelist (cdr filelist) node)])))
+
+@ |path-lookup| takes a path and returns a node if it exists, and 
+returns an error if it doesn't. The procedure runs through the 
+let-loop. temp-path holds all the nodes that have not been searched
+for. If temp-path is empty, we can deduce that we have reached the
+end of our search for a file, and it will return either a node or #f.
+
+\medskip\noindent
+However, if we have not reached the end of our path, we still have
+the possibilities of searching for the next directory in our path,
+or returning #f. If the node searched for is returned as a node,
+we also have to check if the node is a file. If it is a file, then
+we cannot go further into the filesystem to complete the path. If it 
+isn't a file, then it must be a directory and we can continue our 
+search.
+
+@p
+(define path-lookup
+   (lambda (path)
+      (let loop ([temp-path path]
+                 [filelist (fs-contents (virtual-filesystem))])
+         (let ([first-node (path-break temp-path)])
+            (let ([node (search-filelist filelist first-node)])
+               (cond
+                  [(equal? temp-path "") node]
+                  [else
+                     (if (node? node)
+                         (if (file? node)
+                             #f
+                             (loop (path-reduce temp-path)
+                                   (directory-nodes node))
+                          #f)]))))))
+                                   
+
 @* Virtual Ports.
 To access the files on our virtual filesystem for reading or writing,
 we have to utilize ports. However, since we have defined our own type
@@ -493,17 +587,32 @@ and replaced with whatever you add.
 
 @ Port Writer.
 
+@p
 (define port-writer
    (lambda (string start n)
       (begin
          (set! contents string)
          n)))
 
-(define new-string
-   (lambda (string start n contents)
-      (begin
-         (set! contents string)
-         n)))
+@* Convenience I/O.
+
+@p
+(define open-input-file
+   (lambda (path)
+      (let ([node (path-lookup path)])
+         (cond
+            [node (error 'file-exist "File does not exist")]
+            [else
+               (make-virtual-textual-input-port node)]))))
+@p
+(define open-output-file
+   (lambda (path)
+      (let ([node (path-lookup path)])
+         (cond
+            [node (error 'file-exist "File does not exist")]
+            [else
+               (make-virtual-textual-output-port node)]))))
+
 
 
 @* Index.
