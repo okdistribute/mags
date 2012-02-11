@@ -311,10 +311,7 @@ either files or directories.
 @p
 (define virtual-filesystem
    (make-parameter
-      (make-filesystem '())
-      (lambda (x)
-         (assert (filesystem? x))
-         x)))
+      (make-filesystem '())))
 
 @ Test cases for the Virtual Filesystem.
 
@@ -326,6 +323,7 @@ either files or directories.
 (test-assert "filesystem1 == filesystem" (filesystem? filesystem1))
 (test-assert "file.txt == file" (file? (car (ls filesystem1))))
 (test-assert "dir == directory" (dir? (car (cdr (ls filsystem1)))))
+(test-end "test-virtual-filesystem")
 
 
 @* Files and Directories.
@@ -384,31 +382,45 @@ To access the files on our virtual filesystem for reading or writing,
 we have to utilize ports. However, since we have defined our own type
 of filesystem, we will also have to define our own port initialization.
 
+
 @p
 (define make-virtual-textual-input-port 
    (lambda (node)
       (assert (file? node))
       (let ([file node]
-            [filename (file-name node)]
-            [filesize (file-size node)]
+            [filename (node-name node)]
             [filecontents (file-data node)]
-            [fileopen (file-open node)]
             [portpos 0])
-         (when fileopen
+         (when (file-open file)
             (error 'filename "The file is already open."))
          (assert (string? filecontents))
          (let ([input-port
                  (make-custom-textual-input-port filename
-                    (port-reader filecontents portpos)
+                    (lambda (string start n) (port-reader string start n filecontents portpos))
                     (lambda () portpos)
                     (lambda (pos) (set! portpos pos))
                     (lambda () (begin
                                (file-data-set! file filecontents)
-                               (set! fileopen #f))))])
+                               (file-open-set! file #f))))])
             (begin
                (file-data-set! file input-port)
-               (set! fileopen #t))
-            input-port)))
+               (file-open-set! file #t))
+            input-port))))
+
+@(io-test.ss@>=
+(test-begin "test-make-virtual-input-port")
+(define file1 (make-file "file1.txt" 4 "data"))
+(make-virtual-textual-input-port file1)
+
+(test-equal "is data a port?" #t (port? (file-data file1)))
+(test-equal "is file set as open?" #t (file-open file1))
+(test-equal "can read from the file" #\d (read-char (file-data file1)))
+
+(close-port (file-data file1))
+(test-equal "port replaced by the string" "data" (file-data file1))
+(test-equal "is file set as open?" #f (file-open file1))
+
+(test-end "test-make-virtual-input-port")
 
 @ The virtual input port reader maintains a current pointer into
 the file-contents string and moves through it, maintaining the 
@@ -424,8 +436,7 @@ are pulled from the file-data string.
 
 @p
 (define port-reader
-   (capture filecontents portpos)
-   (lambda (string start n)
+   (lambda (string start n filecontents portpos)
       (let ([end (+ start n)]
             [file-length (string-length filecontents)])
          (let loop ([i start]
@@ -435,43 +446,64 @@ are pulled from the file-data string.
              [(>= port-i file-length) (set! port-pos port-i) count]
              [(>= i end) (set! portpos port-i) count]
              [else
-               (string-set! string i (string-ref filecontents port-i))
-               (loop (fx1+ i) (fx1+ count) (fx1+ port-i))]))))) 
+               (begin
+                  (string-set! string i (string-ref filecontents port-i))
+                  (loop (fx1+ i) (fx1+ count) (fx1+ port-i)))])))))
+
             
 @ Above, we created an input port to read data. Similarly, we need a 
 custom port to output data. This acts much the same way as the input
-port we created earlier, however
+port we created earlier, such is it receives a node that must be of
+type file, and the file must not already be open to create the port.
+At first, |make-virtual-textual-output-port| will be written as if
+the file-options for the port is set to truncate, which simply means
+that when you write to a file, the contents of the file will be deleted
+and replaced with whatever you add.
+
+\medskip \noindent
 
 @p
 (define make-virtual-textual-output-port
    (lambda (node)
-      (assert (file? node)
+      (assert (file? node))
       (let ([file node]
-            [filename (file-name node)]
-            [filesize (file-size node)]
+            [filename (node-name node)]
             [filecontents (file-data node)]
-            [fileopen (file-open node)]
-            [contents '()])
-       (when fileopen
+            [contents (make-parameter "")])
+       (define port-writer
+         (lambda (string start n)
+            (begin
+               (set! contents string)
+               n)))
+       (when (file-open file)
          (error 'filename "The file is already open"))
        (assert (string? filecontents))
        (let ([output-port 
                 (make-custom-textual-output-port filename
-                   (port-writer contents)
+                   (lambda (string start n) 
+                      (port-writer string start n))
                    #f
                    #f
-                   (lambda () (file-data-set! file 
-                                 (apply string-append 
-                                        (reverse contents)))))])
+                   (lambda () (begin
+                                 (file-data-set! file contents)
+                                 (file-open-set! file #f))))])
        (file-data-set! file output-port)
-       output-port)))))
+       (file-open-set! file #t)
+       output-port))))
 
 @ Port Writer.
 
-@p
 (define port-writer
-   (capture contents)
    (lambda (string start n)
+      (begin
+         (set! contents string)
+         n)))
+
+(define new-string
+   (lambda (string start n contents)
+      (begin
+         (set! contents string)
+         n)))
 
 
 @* Index.
