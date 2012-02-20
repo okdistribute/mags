@@ -492,12 +492,12 @@ exist.
 returns an error if it doesn't. The procedure runs through the 
 let-loop. temp-path holds all the nodes that have not been searched
 for. If temp-path is empty, we can deduce that we have reached the
-end of our search for a file, and it will return either a node or #f.
+end of our search for a file, and it will return either a node or \#f.
 
 \medskip\noindent
 However, if we have not reached the end of our path, we still have
 the possibilities of searching for the next directory in our path,
-or returning #f. If the node searched for is returned as a node,
+or returning \#f. If the node searched for is returned as a node,
 we also have to check if the node is a file. If it is a file, then
 we cannot go further into the filesystem to complete the path. If it 
 isn't a file, then it must be a directory and we can continue our 
@@ -555,7 +555,10 @@ of filesystem, we will also have to define our own port initialization.
          (assert (string? filecontents))
          (let ([input-port
                  (make-custom-textual-input-port filename
-                    (lambda (string start n) (port-reader string start n filecontents portpos))
+                    (lambda (string start n) 
+                      @<Read from port@>)
+
+(port-reader string start n filecontents portpos))
                     (lambda () portpos)
                     (lambda (pos) (set! portpos pos))
                     (lambda () (begin
@@ -596,21 +599,20 @@ The characters used are the ones from the string of the file. The
 count is a numerical value representing the number of characters that
 are pulled from the file-data string.
 
-@p
-(define port-reader
-   (lambda (string start n filecontents portpos)
-      (let ([end (+ start n)]
-            [file-length (string-length filecontents)])
-         (let loop ([i start]
-                    [count 0]
-                    [port-i portpos])
-           (cond
-             [(>= port-i file-length) (set! port-pos port-i) count]
-             [(>= i end) (set! portpos port-i) count]
-             [else
-               (begin
-                  (string-set! string i (string-ref filecontents port-i))
-                  (loop (fx1+ i) (fx1+ count) (fx1+ port-i)))])))))
+@c (string start n filecontents portpos)
+@<Read from port@>=
+(let ([end (+ start n)]
+      [file-length (string-length filecontents)])
+  (let loop ([i start]
+             [count 0]
+             [port-i portpos])
+    (cond
+      [(>= port-i file-length) (set! portpos port-i) count]
+      [(>= i end) (set! portpos port-i) count]
+      [else
+        (begin
+           (string-set! string i (string-ref filecontents port-i))
+           (loop (fx1+ i) (fx1+ count) (fx1+ port-i)))])))
 
             
 @ Above, we created an input port to read data. Similarly, we need a 
@@ -748,7 +750,7 @@ and replaced with whatever you add.
 
 (open-input-file "/dir/file1")
 
-(test-equal? "does file1 contain a port?" #t 
+(test-equal? "does file1 contain a port?" \#t 
 	     (port? (file-data 
 		      (car (directory-nodes 
 			(car (fs-contents (virtual-filesystem))))))))
