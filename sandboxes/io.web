@@ -369,7 +369,7 @@ space taken up by files inside your |virtual-filesystem|.
 
 @p
 (define current-space-used
-  (make-parameter
+  (lambda ()
    (space-used-in-filesystem 
     (fs-contents (virtual-filesystem)))))
 
@@ -557,8 +557,6 @@ of filesystem, we will also have to define our own port initialization.
                  (make-custom-textual-input-port filename
                     (lambda (string start n) 
                       @<Read from port@>)
-
-(port-reader string start n filecontents portpos))
                     (lambda () portpos)
                     (lambda (pos) (set! portpos pos))
                     (lambda () (begin
@@ -636,22 +634,13 @@ and replaced with whatever you add.
 	    [end 0]
 	    [beginstring 0]
             [contents ""])
-       (define port-writer
-         (lambda (string start n)
-	    (begin
-	      (if (<= (string-length contents) (+ start n))
-		  (set! contents (make-string (+ start n))))
-	      (string-copy! string start contents 0 (sub1 n))
-	      (set! end (sub1 (+ start n)))
-	      (set! beginstring (add1 start))
-	      (- n start))))
        (when (file-open file)
          (error 'filename "The file is already open"))
        (assert (string? filecontents))
        (let ([output-port 
                 (make-custom-textual-output-port filename
                    (lambda (string start n)
-                      (port-writer string start n))
+                      @<Write port@>)
                    #f
                    #f
                    (lambda () (begin
@@ -661,6 +650,18 @@ and replaced with whatever you add.
        (file-data-set! file output-port)
        (file-open-set! file #t)
        output-port))))
+
+@ Port Writer.
+
+@c (string start n contents)
+@<Write port@>=
+(begin
+  (if (<= (string-length contents) (+ start n))
+     (set! contents (make-string (+ start n))))
+  (string-copy! string start contents 0 (sub1 n))
+  (set! end (sub1 (+ start n)))
+  (set! beginstring (add1 start))
+  (- n start))
 
 
 @ Test Cases for Output Port.
