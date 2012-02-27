@@ -361,7 +361,7 @@ back out and return to the main filelist.
       [(file? (car ls)) (+ (node-size (car ls)) 
 			(space-used-in-filesystem (cdr ls)))]
       [else
-	(+ (space-used-in-filesystem (car ls)) 
+	(+ (space-used-in-filesystem (directory-nodes (car ls))) 
 	   (space-used-in-filesystem (cdr ls)))])))
 
 @ |current-space-used| holds a value that represents the current 
@@ -468,7 +468,7 @@ the data of the file with a port, a slight change is necessary to
 access the data position inside the file.
 
 @p
-(define close-port
+(define close-port-new
   (lambda (node)
     (assert (file? node))
     (assert (file-open node))
@@ -631,8 +631,7 @@ and replaced with whatever you add.
       (let ([file node]
             [filename (node-name node)]
             [filecontents (file-data node)]
-	    [end 0]
-	    [beginstring 0]
+	    [length (node-size node)]
             [contents ""])
        (when (file-open file)
          (error 'filename "The file is already open"))
@@ -644,43 +643,59 @@ and replaced with whatever you add.
                    #f
                    #f
                    (lambda () (begin
-                                 (file-data-set! file (substring contents beginstring end))
+                                 (file-data-set! file contents)
                                  (file-open-set! file #f)
-				 (node-size-set! file (- (- end beginstring) 1)))))])
+				 (node-size-set! file length))))])
        (file-data-set! file output-port)
        (file-open-set! file #t)
        output-port))))
 
 @ Port Writer.
 
-@c (string start n contents)
+@c (string start n contents length)
 @<Write port@>=
-(begin
-  (if (<= (string-length contents) (+ start n))
-     (set! contents (make-string (+ start n))))
-  (string-copy! string start contents 0 (sub1 n))
-  (set! end (sub1 (+ start n)))
-  (set! beginstring (add1 start))
-  (- n start))
+(let ([too-big? 
+	(>= (+ (- n start) (current-space-used)) 
+	    (filesystem-maxsize (virtual-filesystem)))])
+  (when too-big?
+    (error 'too-big "You do not have enough space to write this much"))
+  (let ([s (substring string start (+ start n))])
+    (begin
+      (set! contents s)
+      (set! length (string-length s))
+      (string-length s))))
 
 
 @ Test Cases for Output Port.
 
 @(io-test.ss@>=
 (test-begin "test-make-virtual-output-port")
-(define file1 (make-file "file1.txt" 4 "data"))
-(make-virtual-textual-output-port file1)
+  (define file1 (make-file "file1.txt" 4 "data"))
+  (make-virtual-textual-output-port file1)
 
-(test-equal "is data a port?" #t (port? (file-data file1)))
-(test-equal "is file set as open?" #t (file-open file1))
+  (test-equal "is data a port?" #t (port? (file-data file1)))
+  (test-equal "is file set as open?" #t (file-open file1))
 
-(write "this is a new string" (file-data file1))
-(close-port (file-data file1))
+  (write "this is a new string" (file-data file1))
+  (close-port (file-data file1))
 
-(test-equal "port replaced by the new string" "this is a new string" (file-data file1))
-(test-equal "is file set as open?" #f (file-open file1))
+  (test-equal "port replaced by the new string" "this is a new string" (file-data file1))
+  (test-equal "is file set as open?" #f (file-open file1))
 
 (test-end "test-make-virtual-output-port")
+
+(test-begin "test-port-writer")
+
+  (fs-contents! (virtual-filesystem)                                 
+      (cons (make-file "file" 0 "")
+	    (cons (make-file "file1" 499 "data")(fs-contents (virtual-filesystem)))))
+  (define file (car (fs-contents (virtual-filesystem))))
+  (make-virtual-textual-output-port file)
+
+  (put-string (file-data file) "hello")
+
+(test-end "test-port-writer")
+
 
 
 @* Convenience I/O.
@@ -697,24 +712,26 @@ and replaced with whatever you add.
       (make-virtual-textual-input-port (path-lookup path))))
 
 
+@q For the following procedures, should I use open-input-file, etc?
+
+@p
 (define call-with-input-file
   (lambda (path proc)
     (let ([node (path-lookup path)])
       (assert (file? node))
-      (dynamic-wind
-	(lambda () #f)
-	(lambda () (proc (make-virtual-textual-input-port node)))
-	(lambda () (close-port node))))))
-
+      (let ([port (make-virtual-textual-input-port node)])
+	(let-values ([v* (proc port)])
+	  (close-port port)
+	  (apply values v*))))))
 
 (define call-with-output-file
   (lambda (path proc)
     (let ([node (path-lookup path)])
       (assert (file? node))
-      (dynamic-wind
-	(lambda () #f)
-	(lambda () (proc (make-virtual-textual-output-port node)))
-	(lambda () (close-port node))))))
+      (let ([port (make-virtual-textual-output-port node)])
+	(let-values ([v* (proc port)])
+	  (close-port port)
+	  (apply values v*))))))
 
 
 (define with-input-from-file
