@@ -346,6 +346,28 @@ Space Constraints. What this means is that when you initialize your
 filesystem, you can specify the maximum amount of space that you 
 want your filesystem to take up. 
 
+@ Data Record Type.
+In order to provide ease of managing space constraints, we will 
+define a record type data. This will be put into the data field
+of a file and will contain three things. It will contain a 
+string, which will be the actualy data of the file. It will
+contain a field that will either contain a port or a false 
+value. It will also contain a number, which will describe the
+total amount of space used by the file, whether you are 
+writing to it or it is in a non-changing state.
+
+@p
+(define-record-type data
+  (fields (mutable string)
+	  (mutable size)
+	  (mutable port))
+  (protocol
+    (lambda (n)
+      (lambda (string)
+	(unless (string? string)
+	  (error 'make-data "Data isn't entered as a string" string))
+	(n string (string-length string) #f)))))
+
 @ |space-used-in-filesystem| is a procedure that takes a filelist
 and returns the total amount of space taken up within that filelist.
 It recursively travels down the filelist. If it encounters a file,
@@ -358,7 +380,7 @@ back out and return to the main filelist.
   (lambda (ls)
     (cond
       [(null? ls) 0]
-      [(file? (car ls)) (+ (node-size (car ls)) 
+      [(file? (car ls)) (+ (data-size (file-data (car ls))) 
 			(space-used-in-filesystem (cdr ls)))]
       [else
 	(+ (space-used-in-filesystem (directory-nodes (car ls))) 
@@ -402,15 +424,13 @@ appear as others files and directories.
 
 @p
 (define-record-type node
-   (fields (mutable name) (mutable size))
+   (fields (mutable name))
       (protocol
          (lambda (n)
-            (lambda (name size)
+            (lambda (name)
                (unless (string? name)
                   (error 'make-node "name is not a string" name))
-               (unless (>= size 0)
-                  (error 'make-node "size is not a valid integer" size))
-               (n name size)))))
+               (n name)))))
 
 @ |File| is a record-type that is used to create and manage a file-node.
 It contains everything that a node contains (name and size) as well as
@@ -420,13 +440,13 @@ or false) that tells whether the file is open or not.
 
 @p
 (define-record-type file (parent node)
-   (fields (mutable data) (mutable open))
+   (fields (mutable data))
       (protocol
          (lambda (p)
-            (lambda (name size data)
-               (unless (string? data)
-                  (error 'make-file "data is not a string" data))
-               ((p name size) data #f)))))
+            (lambda (name data)
+               (unless (data? data)
+                  (error 'make-file "data is not of correct data structure" data))
+               ((p name) data)))))
 
 @ |Directory| is a type of node that contains a field "nodes" that 
 contains a list of nodes.
@@ -450,16 +470,58 @@ manipulating, and accessing your virtual filesystem.
 @ |touch| is a procedure that will create a blank file.
 
 @p
-(define touch
+(define new-file
   (lambda (string)
-    (make-file string 0 "")))
+    (make-file string (make-data ""))))
+
+(define touch
+  (lambda (path name)
+     (if (equal? path "/")
+        (fs-contents! (virtual-filesystem) 
+           (cons (new-file name) (fs-contents (virtual-filesystem))))     
+        (let loop ([current-list (fs-contents (virtual-filesystem))]
+                   [temp-path (path-rest path)])
+           (let ([dir-node (search-filelist-dir
+                             current-list (path-first temp-path))])
+              (cond
+                 [(equal? "" (path-first (path-rest temp-path)))
+                  (if (equal? #f dir-node)
+                      (error 'mkdir "Directory does not exist")
+                      (directory-nodes-set! dir-node 
+                         (cons (new-file name) (directory-nodes dir-node))))] 
+                 [else
+                    (if (equal? #f dir-node)
+                        (error 'mkdir "Directory does not exist")
+                        (loop (directory-nodes dir-node) 
+                           (path-rest temp-path)))]))))))
 
 @ |mkdir| is a procedure that will create an empty directory.
 
 @p
-(define mkdir
+(define new-dir
   (lambda (string)
     (make-directory string '())))
+
+(define mkdir
+  (lambda (path name)
+     (if (equal? path "/")
+        (fs-contents! (virtual-filesystem) 
+           (cons (new-dir name) (fs-contents (virtual-filesystem))))  
+        (let loop ([current-list (fs-contents (virtual-filesystem))]
+                   [temp-path (path-rest path)])
+           (let ([dir-node (search-filelist-dir 
+                             current-list (path-first temp-path))])
+              (cond
+                 [(equal? "" (path-first (path-rest temp-path)))
+                  (if (equal? #f dir-node)
+                      (error 'mkdir "Directory does not exist")
+                      (directory-nodes-set! dir-node 
+                         (cons (new-dir name) (directory-nodes dir-node))))] 
+                 [else
+                    (if (equal? #f dir-node)
+                        (error 'mkdir "Directory does not exist")
+                        (loop (directory-nodes dir-node) 
+                           (path-rest temp-path)))]))))))
 
 @ |close-port| is a procedure that takes a node and closes it's
 port if it currently has one open. Below is a rewritten procedure
@@ -479,14 +541,25 @@ find and return a node if one exists, and false if the node doesn't
 exist.
 
 @p
-(define search-filelist
-  (lambda (filelist node)
+(define search-filelist-file
+  (lambda (filelist name)
     (cond
       [(null? filelist) #f]
-      [(equal? node (node-name (car filelist)))
+      [(and (equal? name (node-name (car filelist))) 
+            (file? (car filelist)))
        (car filelist)]
       [else
-	(search-filelist (cdr filelist) node)])))
+	(search-filelist-file (cdr filelist) name)])))
+
+(define search-filelist-dir
+  (lambda (filelist name)
+    (cond
+      [(null? filelist) #f]
+      [(and (equal? name (node-name (car filelist)))
+            (directory? (car filelist)))
+       (car filelist)]
+      [else
+	(search-filelist-dir (cdr filelist) name)])))
 
 @ |path-lookup| takes a path and returns a node if it exists, and 
 returns an error if it doesn't. The procedure runs through the 
@@ -509,10 +582,10 @@ search.
       (let loop ([temp-path (path-rest path)]
                  [filelist (fs-contents (virtual-filesystem))])
          (let ([first-node (path-first temp-path)])
-            (let ([node (search-filelist filelist first-node)])
+            (let ([node (search-filelist-dir filelist first-node)])
                (cond
                   [(equal? (path-first temp-path) "")
-		    (search-filelist filelist temp-path)]
+		    (search-filelist-file filelist temp-path)]
                   [else
                      (if (node? node)
                          (if (file? node)
@@ -548,9 +621,9 @@ of filesystem, we will also have to define our own port initialization.
       (assert (file? node))
       (let ([file node]
             [filename (node-name node)]
-            [filecontents (file-data node)]
+            [filecontents (data-string (file-data node))]
             [portpos 0])
-         (when (file-open file)
+         (when (port? (data-port (file-data file)))
             (error 'filename "The file is already open."))
          (assert (string? filecontents))
          (let ([input-port
@@ -560,11 +633,9 @@ of filesystem, we will also have to define our own port initialization.
                     (lambda () portpos)
                     (lambda (pos) (set! portpos pos))
                     (lambda () (begin
-                               (file-data-set! file filecontents)
-                               (file-open-set! file #f))))])
-            (begin
-               (file-data-set! file input-port)
-               (file-open-set! file #t))
+			       (data-string-set! (file-data file) filecontents)
+			       (data-port-set! (file-data file) #f))))])
+	    (data-port-set! (file-data file) input-port)
             input-port))))
 
 @ Test Cases for Input Port.
@@ -630,10 +701,11 @@ and replaced with whatever you add.
       (assert (file? node))
       (let ([file node]
             [filename (node-name node)]
-            [filecontents (file-data node)]
-	    [length (node-size node)]
-            [contents ""])
-       (when (file-open file)
+            [filecontents (data-string (file-data node))]
+	    [length (data-size (file-data node))]
+            [contents ""]
+	    [orig-contents (data-string (file-data node))])
+       (when (port? (data-port (file-data file)))
          (error 'filename "The file is already open"))
        (assert (string? filecontents))
        (let ([output-port 
@@ -643,16 +715,14 @@ and replaced with whatever you add.
                    #f
                    #f
                    (lambda () (begin
-                                 (file-data-set! file contents)
-                                 (file-open-set! file #f)
-				 (node-size-set! file length))))])
-       (file-data-set! file output-port)
-       (file-open-set! file #t)
+				 (data-port-set! (file-data file) #f)
+				 )))])
+       (data-port-set! (file-data file) output-port)
        output-port))))
 
 @ Port Writer.
 
-@c (string start n contents length)
+@c (string start n contents length node)
 @<Write port@>=
 (let ([too-big? 
 	(>= (+ (- n start) (current-space-used)) 
@@ -663,6 +733,8 @@ and replaced with whatever you add.
     (begin
       (set! contents s)
       (set! length (string-length s))
+      (data-string-set! (file-data node) s)
+      (data-size-set! (file-data node) (string-length s))
       (string-length s))))
 
 
@@ -711,46 +783,34 @@ and replaced with whatever you add.
       (assert (file-exists? path))
       (make-virtual-textual-input-port (path-lookup path))))
 
-
-@q For the following procedures, should I use open-input-file, etc?
-
-@p
 (define call-with-input-file
   (lambda (path proc)
-    (let ([node (path-lookup path)])
-      (assert (file? node))
-      (let ([port (make-virtual-textual-input-port node)])
-	(let-values ([v* (proc port)])
+     (let ([port (open-input-file path)])
+        (let-values ([v* (proc port)])
 	  (close-port port)
-	  (apply values v*))))))
+	  (apply values v*)))))
 
 (define call-with-output-file
   (lambda (path proc)
-    (let ([node (path-lookup path)])
-      (assert (file? node))
-      (let ([port (make-virtual-textual-output-port node)])
+      (let ([port (open-output-file path)])
 	(let-values ([v* (proc port)])
 	  (close-port port)
-	  (apply values v*))))))
+	  (apply values v*)))))
 
 
 (define with-input-from-file
   (lambda (path thunk)
-    (let ([node (path-lookup path)])
-      (assert (file? node))
       (dynamic-wind
-	(lambda () (make-virtual-textual-input-port node))
+	(lambda () (open-input-file path))
 	(lambda () thunk)
-	(lambda () (close-port node))))))
+	(lambda () (close-port path)))))
 
 (define with-output-to-file
   (lambda (path thunk)
-    (let ([node (path-lookup path)])
-      (assert (file? node))
       (dynamic-wind
-	(lambda () (make-virtual-textual-output-port node))
+	(lambda () (open-output-file path))
 	(lambda () thunk)
-	(lambda () (close-port node))))))
+	(lambda () (close-port path)))))
 
 (define file-exists?
   (lambda (path)
