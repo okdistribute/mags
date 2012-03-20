@@ -536,6 +536,14 @@ access the data position inside the file.
     (assert (file-open node))
     (close-port (file-data node))))
 
+@ |port| is a procedure that takes a path and returns the port 
+if it contains one, and false otherwise.
+
+@p
+(define port
+  (lambda (path)
+    (data-port (file-data (path-lookup path)))))
+
 @ |search-filelist| is a simple list recursion procedure that will
 find and return a node if one exists, and false if the node doesn't
 exist.
@@ -722,7 +730,7 @@ and replaced with whatever you add.
 
 @ Port Writer.
 
-@c (string start n contents length node)
+@c (string start n contents length node filecontents)
 @<Write port@>=
 (let ([too-big? 
 	(>= (+ (- n start) (current-space-used)) 
@@ -733,7 +741,11 @@ and replaced with whatever you add.
     (begin
       (set! contents s)
       (set! length (string-length s))
-      (data-string-set! (file-data node) s)
+      (cond 
+	[(equal? (file-options1) 'append)
+	  (data-string-set! (file-data node) (string-append filecontents s))]
+	[else
+	  (data-string-set! (file-data node) s)])
       (data-size-set! (file-data node) (string-length s))
       (string-length s))))
 
@@ -769,19 +781,16 @@ and replaced with whatever you add.
 (test-end "test-port-writer")
 
 
-
 @* Convenience I/O.
 
 @p
 (define open-input-file
    (lambda (path)
-      (assert (file-exists? path))
       (make-virtual-textual-input-port (path-lookup path))))
 
 (define open-output-file
    (lambda (path)
-      (assert (file-exists? path))
-      (make-virtual-textual-input-port (path-lookup path))))
+      (make-virtual-textual-output-port (path-lookup path))))
 
 (define call-with-input-file
   (lambda (path proc)
@@ -834,6 +843,26 @@ and replaced with whatever you add.
 			(car (fs-contents (virtual-filesystem))))))))
 
 (test-end "open-input-file/open-output-file")
+
+@* File Options.
+This section will include file options. Setting a specific file option will 
+enable the user to open a file in several different ways. When you open a
+file to write something, for example, you can have it write in different ways.
+You can add the new string to the end of the current string in your file. You
+can replace the contents of your file with your new string. Additionally, you
+can add your new string to the front of your string in your file.
+
+@p
+(define file-options1
+  (make-parameter
+    'replace
+    (lambda (x)
+      (assert (or
+		(equal? x 'replace)
+		(equal? x 'append)))
+      x)))
+
+
 @* Index.
 
 
