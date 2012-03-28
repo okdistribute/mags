@@ -32,17 +32,21 @@ manipulating a virtual file system for a sandbox environment.
    (export
     virtual-filesystem
     current-space-used
-    file-exists?
     touch
     mkdir
+    close-port
+    port
     path-lookup
+    make-virtual-textual-input-port
+    make-virtual-textual-output-port
     open-input-file
     open-output-file
     call-with-input-file
     call-with-output-file
     with-input-from-file
     with-output-to-file
-    close-port)
+    file-exists?
+    file-options)
    (import
       (srfi :64)
       (mags sandbox)
@@ -55,8 +59,9 @@ manipulating a virtual file system for a sandbox environment.
          call-with-output-file
          with-input-from-file
          with-output-to-file
-	 close-port))
-   (include "filesystemRecord.ss"))
+	 close-port
+	 file-options))
+      (include "io.ss"))
 
 @* Overview.
 This library creates a sandbox virtual file system. The main purpose
@@ -380,8 +385,10 @@ back out and return to the main filelist.
   (lambda (ls)
     (cond
       [(null? ls) 0]
-      [(file? (car ls)) (+ (data-size (file-data (car ls))) 
-			(space-used-in-filesystem (cdr ls)))]
+      [(file? (car ls)) 
+	(begin	   
+       	   (+ (data-size (file-data (car ls))) 
+	      (space-used-in-filesystem (cdr ls))))]
       [else
 	(+ (space-used-in-filesystem (directory-nodes (car ls))) 
 	   (space-used-in-filesystem (cdr ls)))])))
@@ -534,7 +541,7 @@ access the data position inside the file.
   (lambda (node)
     (assert (file? node))
     (assert (file-open node))
-    (close-port (file-data node))))
+    (close-port (data-port (file-data node)))))
 
 @ |port| is a procedure that takes a path and returns the port 
 if it contains one, and false otherwise.
@@ -709,28 +716,32 @@ and replaced with whatever you add.
       (assert (file? node))
       (let ([file node]
             [filename (node-name node)]
-            [filecontents (data-string (file-data node))]
-	    [length (data-size (file-data node))]
-            [contents ""]
-	    [orig-contents (data-string (file-data node))])
-       (when (port? (data-port (file-data file)))
+	    [data (file-data node)])
+       (when (port? (data-port data))
          (error 'filename "The file is already open"))
-       (assert (string? filecontents))
+       (assert (string? (data-string data)))
        (let ([output-port 
                 (make-custom-textual-output-port filename
                    (lambda (string start n)
                       @<Write port@>)
                    #f
                    #f
-                   (lambda () (begin
-				 (data-port-set! (file-data file) #f)
-				 )))])
-       (data-port-set! (file-data file) output-port)
+                   (lambda () (data-port-set! (file-data file) #f)))])
+       (data-port-set! data output-port)
        output-port))))
 
 @ Port Writer.
 
-@c (string start n contents length node filecontents)
+NOTE: That cond should be reduced down to the same thing every time.
+It should look like (data-string-set! data (string-append (data-string data) s))
+
+If file-options is set to replace, then the data-string data should just be
+an empty string. 
+
+(flush-output-string <port>) will save it to the "disk". We can perform
+this check when before we search for the space requirements.
+
+@c (string start n data)
 @<Write port@>=
 (let ([too-big? 
 	(>= (+ (- n start) (current-space-used)) 
@@ -739,14 +750,8 @@ and replaced with whatever you add.
     (error 'too-big "You do not have enough space to write this much"))
   (let ([s (substring string start (+ start n))])
     (begin
-      (set! contents s)
-      (set! length (string-length s))
-      (cond 
-	[(equal? (file-options1) 'append)
-	  (data-string-set! (file-data node) (string-append filecontents s))]
-	[else
-	  (data-string-set! (file-data node) s)])
-      (data-size-set! (file-data node) (string-length s))
+      (data-string-set! data (string-append (data-string data) s))
+      (data-size-set! data (string-length s))
       (string-length s))))
 
 
@@ -785,12 +790,18 @@ and replaced with whatever you add.
 
 @p
 (define open-input-file
-   (lambda (path)
+   (lambda (path . options)
       (make-virtual-textual-input-port (path-lookup path))))
 
 (define open-output-file
-   (lambda (path)
-      (make-virtual-textual-output-port (path-lookup path))))
+   (lambda (path . options)
+      (let ([node (path-lookup path)])
+	(begin
+	  (when (or (null? options) (not (is-option? (car options))))
+	    (set! options (cons 'append '())))
+	  (when (equal? 'replace (car options))
+	      (data-string-set! (file-data node) ""))
+	  (make-virtual-textual-output-port node)))))
 
 (define call-with-input-file
   (lambda (path proc)
@@ -853,7 +864,7 @@ can replace the contents of your file with your new string. Additionally, you
 can add your new string to the front of your string in your file.
 
 @p
-(define file-options1
+(define file-options
   (make-parameter
     'replace
     (lambda (x)
@@ -861,6 +872,21 @@ can add your new string to the front of your string in your file.
 		(equal? x 'replace)
 		(equal? x 'append)))
       x)))
+
+@ File Options 2.
+optional argument
+(lambda (a b c . d e f)) (d and e and f are optional)
+
+(oof filename 'replace)
+(define is-replace? 
+  (and (memq 'replace fileopts) #t))
+
+@p
+(define (is-option? sym)
+  (and (memq sym file-opts) #t))
+
+(define file-opts
+  (list 'replace 'append))
 
 
 @* Index.
