@@ -80,6 +80,11 @@ are others that can remain as they are, as they only touch ports.
 
 
 @ Procedures that require new definitions.
+These convenience IO procedures will need to be rewritten due to 
+the fact that they directly touch a port or file. Because the
+filesystem is virtual and has its own unique datatype, we need
+to customize procedures that will open or close the virtual 
+files inside the virtual filesystem.
 
 
 \medskip \noindent {\tt open-file-input-port}
@@ -308,13 +313,70 @@ procedure of closing the port. This procedure is equivalent to the
 close-port procedure. This procedure touches a port.
 
 
-@* Current Virtual Filesystem.
-The following creates a parameter that represents the current virtual
-filesystem that is being used. This virtual filesystem is a unique
-ADT created by using records. The filesystem record holds a list
-of nodes held in the root level of the filesystem. These nodes can be 
-either files or directories.
+@* Virtual Filesystem Datatype.
+To house all of the files and directories that we want to add to
+the filesystem, we have to create something that will hold them
+all. To do this, we define a new record type named filesystem.
+Records in scheme create new datatypes that are unique to 
+themselves.
 
+\medskip \noindent
+Below you can see the code for the filesystem ADT. There are two fields
+in the datatype, one that we call filelist and one that we call maxsize.
+
+\medskip \indent
+{\tt filelist}
+\medskip \indent \indent
+The filelist has a list structure that will hold all of the files
+and directories inside the file system. From the protocol, 
+you can see that if you attempt to initialize a virtual filesystem
+and the filelist isn't of the type list, it will stop and return an
+error.
+
+\medskip \indent
+{\tt maxsize}
+\medskip \indent \indent
+The maxsize field contains an integer that represents that maximum
+amount of characters you can have in all of your files in your
+filesystem. This will be explained more fully in detail under the 
+Space Usage section, but basically this will be used to make sure
+nothing is written into a file if it pushes the overall space usage
+above the set parameter. 
+
+\medskip
+Along with the fields, filelist and masxsize, there are also 
+accessors and constructors that the record type automatically
+makes for the fields. As we can see below in our filesystem,
+we have two fields that are mutable (changeable). One
+has uniquely a uniquely defined accessor and constructor,
+and the other follows the default structure.
+
+\medskip
+For filelist, you access it by performing the procedure
+fs-contents on a virtual filesystem, like so:
+
+\medskip
+(fs-contents (virtual-filesystem))
+\medskip
+
+To edit your filelist, you need to use the constructor, fs-contents!
+(with a bang (!)). Hypothetically, let's say you want to add a file
+to your filelist. You would do this like so:
+
+\medskip
+(fs-contents! (virtual-filesystem) 
+  (cons (make-file "file" (make-data "hello world")) 
+	(fs-contents (virtual-filesystem))))
+\medskip
+
+You use the default accessors and constructors the same way,
+except the names are different.
+
+\medskip
+Accessors: <record-name>-<field-name> : filesystem-maxsize
+\smallskip
+Constructors:<record-name>-<field-name>-set! : filesystem-maxsize-set!
+\medskip
 
 @p
 (define-record-type filesystem
@@ -329,7 +391,15 @@ either files or directories.
 		  (error 'make-filesystem "size is not a valid integer" size))
                (n filelist maxsize)))))
 
+@ Current Virtual Filesystem.
+The code below creates a virtual filesystem and holds it inside the parameter
+virtual-filesystem. It can be called by simply running the procedure, like so:
 
+\medskip \indent
+(virtual-filesystem)
+\medskip
+
+@p
 (define virtual-filesystem
    (make-parameter
       (make-filesystem '() 500)))
@@ -343,13 +413,39 @@ either files or directories.
 (test-assert "filesystem1 == filesystem" (filesystem? filesystem1))
 (test-end "test-virtual-filesystem")
 
-@* Filesystem Space Constraints.
-In order to make sure that everything in our virtual filesystem
-is maintained and controlled by the operator of the system,
-we can add some functionality that will bring into play Filesystem
-Space Constraints. What this means is that when you initialize your
-filesystem, you can specify the maximum amount of space that you 
-want your filesystem to take up. 
+@* Nodes.
+Remember that filelist inside the filesystem datatype? It has a list
+structure and contains elements that are either files or directories.
+Those elements all have one thing in common; they are nodes. A node
+is just something with a name. The node datatype isn't very useful 
+from a usability standpoint, because for our files and directories,
+we're going to have to have other points of interest, such as size 
+or contents. In order to save redundant code, and to show the 
+connection between files and directories, we give them both the
+same "parent" datatype, node.
+
+@p
+(define-record-type node
+   (fields (mutable name))
+      (protocol
+         (lambda (n)
+            (lambda (name)
+               (unless (string? name)
+                  (error 'make-node "name is not a string" name))
+               (n name)))))
+
+@ |File| is our record type that in addition to having a name (like
+it's parent record type, node), has data. 
+
+@p
+(define-record-type file (parent node)
+   (fields (mutable data))
+      (protocol
+         (lambda (p)
+            (lambda (name data)
+               (unless (data? data)
+                  (error 'make-file "data is not of correct data structure" data))
+               ((p name) data)))))
 
 @ Data Record Type.
 In order to provide ease of managing space constraints, we will 
@@ -360,6 +456,13 @@ contain a field that will either contain a port or a false
 value. It will also contain a number, which will describe the
 total amount of space used by the file, whether you are 
 writing to it or it is in a non-changing state.
+
+\medskip
+When you create a data item, all you need to pass the
+procedure is the string that will make up the "data" or "contents"
+of our data structure. The constructor for the datatype will
+actually put the size (length of the data string) in by itself.
+Additionally, the port field will always be initiated as \#f.
 
 @p
 (define-record-type data
@@ -373,12 +476,35 @@ writing to it or it is in a non-changing state.
 	  (error 'make-data "Data isn't entered as a string" string))
 	(n string (string-length string) #f)))))
 
+@ |Directory| is a type of node that contains a field "nodes" that 
+contains a list of nodes. 
+
+@p
+(define-record-type directory (parent node)
+   (fields (mutable nodes))
+      (protocol
+         (lambda (p)
+            (lambda (name nodes)
+               (unless (list? nodes) 
+                  (error 'make-directory "not a list" nodes))
+               (unless (for-all node? nodes)
+                  (error 'make-directory "directory can only contain nodes" nodes))
+               ((p name 0) nodes)))))
+
+@* Filesystem Space Constraints.
+In order to make sure that everything in our virtual filesystem
+is maintained and controlled by the operator of the system,
+we can add some functionality that will bring into play Filesystem
+Space Constraints. What this means is that when you initialize your
+filesystem, you can specify the maximum amount of space that you 
+want your filesystem to take up. 
+
 @ |space-used-in-filesystem| is a procedure that takes a filelist
 and returns the total amount of space taken up within that filelist.
 It recursively travels down the filelist. If it encounters a file,
 it adds the size onto the total. If it encounters a directory,
 it will add up the sizes of all the files in the directory and then
-back out and return to the main filelist.
+back out and return to the main filelist and continue down it.
 
 @p
 (define space-used-in-filesystem
@@ -393,8 +519,10 @@ back out and return to the main filelist.
 	(+ (space-used-in-filesystem (directory-nodes (car ls))) 
 	   (space-used-in-filesystem (cdr ls)))])))
 
-@ |current-space-used| holds a value that represents the current 
-space taken up by files inside your |virtual-filesystem|.
+@ |current-space-used| is a thunk that runs space-used-in-filesystem
+and returns the total amount of space used in the |virtual-filesystem|.
+We have this here so we can easily find out how much space is used
+in our |(virtual-filesystem)| parameter.
 
 @p
 (define current-space-used
@@ -420,214 +548,27 @@ space taken up by files inside your |virtual-filesystem|.
 (test-equal? "new fs takes up 9 space" 9 (current-space-used))
 (test-end "test-space-usage")
 
-
-@* Files and Directories.
-Files and Directories are subtypes of nodes. As nodes, they both have
-names and size, but as separate subtypes they also have unique qualities 
-by which we can identify them. Files, in addition to having names and 
-sizes, have data and a field which denotes whether they are open or not.
-Directories, in addition to having names and sizes, have children, which 
-appear as others files and directories.
-
-@p
-(define-record-type node
-   (fields (mutable name))
-      (protocol
-         (lambda (n)
-            (lambda (name)
-               (unless (string? name)
-                  (error 'make-node "name is not a string" name))
-               (n name)))))
-
-@ |File| is a record-type that is used to create and manage a file-node.
-It contains everything that a node contains (name and size) as well as
-an extra field called data that contains the contents of the file in a
-string. Additionally, it also has a field that contains a boolean (true
-or false) that tells whether the file is open or not.
-
-@p
-(define-record-type file (parent node)
-   (fields (mutable data))
-      (protocol
-         (lambda (p)
-            (lambda (name data)
-               (unless (data? data)
-                  (error 'make-file "data is not of correct data structure" data))
-               ((p name) data)))))
-
-@ |Directory| is a type of node that contains a field "nodes" that 
-contains a list of nodes.
-
-@p
-(define-record-type directory (parent node)
-   (fields (mutable nodes))
-      (protocol
-         (lambda (p)
-            (lambda (name nodes)
-               (unless (list? nodes) 
-                  (error 'make-directory "not a list" nodes))
-               (unless (for-all node? nodes)
-                  (error 'make-directory "directory can only contain nodes" nodes))
-               ((p name 0) nodes)))))
-
-@* Convenience Procedures.
-Defined below are a series of procedures that will help in maintaining,
-manipulating, and accessing your virtual filesystem.
-
-@ |touch| is a procedure that will create a blank file.
-
-@p
-(define new-file
-  (lambda (string)
-    (make-file string (make-data ""))))
-
-(define touch
-  (lambda (path name)
-     (if (equal? path "/")
-        (fs-contents! (virtual-filesystem) 
-           (cons (new-file name) (fs-contents (virtual-filesystem))))     
-        (let loop ([current-list (fs-contents (virtual-filesystem))]
-                   [temp-path (path-rest path)])
-           (let ([dir-node (search-filelist-dir
-                             current-list (path-first temp-path))])
-              (cond
-                 [(equal? "" (path-first (path-rest temp-path)))
-                  (if (equal? #f dir-node)
-                      (error 'mkdir "Directory does not exist")
-                      (directory-nodes-set! dir-node 
-                         (cons (new-file name) (directory-nodes dir-node))))] 
-                 [else
-                    (if (equal? #f dir-node)
-                        (error 'mkdir "Directory does not exist")
-                        (loop (directory-nodes dir-node) 
-                           (path-rest temp-path)))]))))))
-
-@ |mkdir| is a procedure that will create an empty directory.
-
-@p
-(define new-dir
-  (lambda (string)
-    (make-directory string '())))
-
-(define mkdir
-  (lambda (path name)
-     (if (equal? path "/")
-        (fs-contents! (virtual-filesystem) 
-           (cons (new-dir name) (fs-contents (virtual-filesystem))))  
-        (let loop ([current-list (fs-contents (virtual-filesystem))]
-                   [temp-path (path-rest path)])
-           (let ([dir-node (search-filelist-dir 
-                             current-list (path-first temp-path))])
-              (cond
-                 [(equal? "" (path-first (path-rest temp-path)))
-                  (if (equal? #f dir-node)
-                      (error 'mkdir "Directory does not exist")
-                      (directory-nodes-set! dir-node 
-                         (cons (new-dir name) (directory-nodes dir-node))))] 
-                 [else
-                    (if (equal? #f dir-node)
-                        (error 'mkdir "Directory does not exist")
-                        (loop (directory-nodes dir-node) 
-                           (path-rest temp-path)))]))))))
-
-@ |close-port| is a procedure that takes a node and closes it's
-port if it currently has one open. Below is a rewritten procedure
-to take into account our record-datatype file. Because we replace 
-the data of the file with a port, a slight change is necessary to
-access the data position inside the file.
-
-@p
-(define close-port-new
-  (lambda (node)
-    (assert (file? node))
-    (assert (file-open node))
-    (close-port (data-port (file-data node)))))
-
-@ |port| is a procedure that takes a path and returns the port 
-if it contains one, and false otherwise.
-
-@p
-(define port
-  (lambda (path)
-    (data-port (file-data (path-lookup path)))))
-
-@ |search-filelist| is a simple list recursion procedure that will
-find and return a node if one exists, and false if the node doesn't
-exist.
-
-@p
-(define search-filelist-file
-  (lambda (filelist name)
-    (cond
-      [(null? filelist) #f]
-      [(and (equal? name (node-name (car filelist))) 
-            (file? (car filelist)))
-       (car filelist)]
-      [else
-	(search-filelist-file (cdr filelist) name)])))
-
-(define search-filelist-dir
-  (lambda (filelist name)
-    (cond
-      [(null? filelist) #f]
-      [(and (equal? name (node-name (car filelist)))
-            (directory? (car filelist)))
-       (car filelist)]
-      [else
-	(search-filelist-dir (cdr filelist) name)])))
-
-@ |path-lookup| takes a path and returns a node if it exists, and 
-returns an error if it doesn't. The procedure runs through the 
-let-loop. temp-path holds all the nodes that have not been searched
-for. If temp-path is empty, we can deduce that we have reached the
-end of our search for a file, and it will return either a node or \#f.
-
-\medskip\noindent
-However, if we have not reached the end of our path, we still have
-the possibilities of searching for the next directory in our path,
-or returning \#f. If the node searched for is returned as a node,
-we also have to check if the node is a file. If it is a file, then
-we cannot go further into the filesystem to complete the path. If it 
-isn't a file, then it must be a directory and we can continue our 
-search.
-
-@p
-(define path-lookup
-   (lambda (path)
-      (let loop ([temp-path (path-rest path)]
-                 [filelist (fs-contents (virtual-filesystem))])
-         (let ([first-node (path-first temp-path)])
-            (let ([node (search-filelist-dir filelist first-node)])
-               (cond
-                  [(equal? (path-first temp-path) "")
-		    (search-filelist-file filelist temp-path)]
-                  [else
-                     (if (node? node)
-                         (if (file? node)
-                             #f
-                             (loop (path-rest temp-path)
-                                   (directory-nodes node)))
-                          #f)]))))))
-                                   
-@ Test Cases for |path-lookup|.
-(test-begin "path-lookup")
-(fs-contents! (virtual-filesystem)
-	      (cons (make-directory "dir" 
-		      (cons (make-file "file1" 4 "data")
-			    '()))
-		    (fs-contents (virtual-filesystem))))
-
-(test-equal? "can find a directory node" 
-  (car (fs-contents (virtual-filesystem)))
-  (path-lookup "/dir"))
-
-(test-end "path-lookup")
-
-
 @* Virtual Ports.
 To access the files on our virtual filesystem for reading or writing,
 we have to utilize ports. However, since we have defined our own type
 of filesystem, we will also have to define our own port initialization.
+
+@ Input Port.
+\medskip
+The procedure |make-virtual-textual-input-port| will create a textual
+input port for reading data from virtual files. The procedure begins
+by asserting that everything in the file is as it should be: the node 
+is in fact a file, there isn't a port already open, and the data
+of the file is represented as a string.
+\medskip
+Next, it creates a variable inside a let named input-port that holds
+the value of creating a custom port, which takes a reader, a 
+thunk that returns the port position, a procedure that updates the
+port position, and a closing procedure to do any extra adjustments
+to the file before you close it. 
+\medskip
+After all of that is created, the procedure reaches into the file
+and sets the |data-port| field to be the input-port.
 
 
 @p
@@ -635,7 +576,6 @@ of filesystem, we will also have to define our own port initialization.
    (lambda (node)
       (assert (file? node))
       (let ([file node]
-            [filename (node-name node)]
             [filecontents (data-string (file-data node))]
             [portpos 0])
          (when (port? (data-port (file-data file)))
@@ -647,9 +587,7 @@ of filesystem, we will also have to define our own port initialization.
                       @<Read from port@>)
                     (lambda () portpos)
                     (lambda (pos) (set! portpos pos))
-                    (lambda () (begin
-			       (data-string-set! (file-data file) filecontents)
-			       (data-port-set! (file-data file) #f))))])
+                    (lambda () (data-port-set! (file-data file) #f)))])
 	    (data-port-set! (file-data file) input-port)
             input-port))))
 
@@ -703,11 +641,13 @@ are pulled from the file-data string.
 custom port to output data. This acts much the same way as the input
 port we created earlier, such is it receives a node that must be of
 type file, and the file must not already be open to create the port.
-At first, |make-virtual-textual-output-port| will be written as if
-the file-options for the port is set to truncate, which simply means
-that when you write to a file, the contents of the file will be deleted
-and replaced with whatever you add.
 
+\medskip
+Again, much of the output-port is like the input port. There are
+only two places where the two differ. One is that the output port
+uses a port writer instead of a reader, and the other is that in
+an output port, there is no need to keep the position inside the
+port.
 \medskip \noindent
 
 @p
@@ -731,12 +671,16 @@ and replaced with whatever you add.
        output-port))))
 
 @ Port Writer.
-
-NOTE: That cond should be reduced down to the same thing every time.
-It should look like (data-string-set! data (string-append (data-string data) s))
-
-If file-options is set to replace, then the data-string data should just be
-an empty string. 
+The |port-writer| does exactly what the name implies; writes to an output
+port. When this action is performed, the |port-writer| will check to see
+if the string being added to the file will push the space usage above
+the maximum size. If it does, the port writer will break and return
+with an error. 
+\medskip
+After the space check, the port-writer will append s (which is the string
+you are writing to the file) to the end of the data that the file currently
+has, it will change the size of the file to the length of the new string,
+and will return the length of the string being added to the file.
 
 (flush-output-string <port>) will save it to the "disk". We can perform
 this check when before we search for the space requirements.
@@ -785,6 +729,171 @@ this check when before we search for the space requirements.
 
 (test-end "test-port-writer")
 
+@* Convenience Procedures.
+Defined below are a series of procedures that will help in maintaining,
+manipulating, and accessing your virtual filesystem.
+
+@ |touch| is a procedure that takes a path and a name and will create
+a new empty file at that location in your filesystem, if that location
+exists. If it doesn't exist, it will return an error message that says
+so.
+
+@p
+(define new-file
+  (lambda (string)
+    (make-file string (make-data ""))))
+
+(define touch
+  (lambda (path name)
+     (if (equal? path "/")
+        (fs-contents! (virtual-filesystem) 
+           (cons (new-file name) (fs-contents (virtual-filesystem))))     
+        (let loop ([current-list (fs-contents (virtual-filesystem))]
+                   [temp-path (path-rest path)])
+           (let ([dir-node (search-filelist-dir
+                             current-list (path-first temp-path))])
+              (cond
+                 [(equal? "" (path-first (path-rest temp-path)))
+                  (if (equal? #f dir-node)
+                      (error 'mkdir "Directory does not exist")
+                      (directory-nodes-set! dir-node 
+                         (cons (new-file name) (directory-nodes dir-node))))] 
+                 [else
+                    (if (equal? #f dir-node)
+                        (error 'mkdir "Directory does not exist")
+                        (loop (directory-nodes dir-node) 
+                           (path-rest temp-path)))]))))))
+
+@ |mkdir| is a procedure that will create an empty directory at the path
+specified, unless that path doesn't exist. If the path doesn't exist,
+the code will break and throw an error message that tells you that
+the directory you are looking for doesn't exist. This procedure
+works much like the |touch| procedure.
+
+@p
+(define new-dir
+  (lambda (string)
+    (make-directory string '())))
+
+(define mkdir
+  (lambda (path name)
+     (if (equal? path "/")
+        (fs-contents! (virtual-filesystem) 
+           (cons (new-dir name) (fs-contents (virtual-filesystem))))  
+        (let loop ([current-list (fs-contents (virtual-filesystem))]
+                   [temp-path (path-rest path)])
+           (let ([dir-node (search-filelist-dir 
+                             current-list (path-first temp-path))])
+              (cond
+                 [(equal? "" (path-first (path-rest temp-path)))
+                  (if (equal? #f dir-node)
+                      (error 'mkdir "Directory does not exist")
+                      (directory-nodes-set! dir-node 
+                         (cons (new-dir name) (directory-nodes dir-node))))] 
+                 [else
+                    (if (equal? #f dir-node)
+                        (error 'mkdir "Directory does not exist")
+                        (loop (directory-nodes dir-node) 
+                           (path-rest temp-path)))]))))))
+
+@ |close-port| is a procedure that takes a node and closes it's
+port if it currently has one open. We have to rewrite this
+procedure because close-port works with a regular file and port,
+but not our unique virtual files and ports. Inside our file,
+we have a data field, and inside that data field, we have a port
+field. Our new close-port function will access that port field
+and close it.
+
+@p
+(define close-port-new
+  (lambda (node)
+    (assert (file? node))
+    (assert (file-open node))
+    (close-port (data-port (file-data node)))))
+
+@ |port| is a procedure that takes a path and returns the port 
+if it contains one, and false otherwise.
+
+@p
+(define port
+  (lambda (path)
+    (data-port (file-data (path-lookup path)))))
+
+@ |path-lookup| takes a path and returns a node if it exists, and 
+returns \#f if it doesn't. The procedure runs through the 
+let-loop. temp-path holds all the nodes that have not been searched
+for. If temp-path is empty, we can deduce that we have reached the
+end of our search for a file, and it will return either a node or \#f.
+
+\medskip\noindent
+However, if we have not reached the end of our path, we still have
+the possibilities of searching for the next directory in our path,
+or returning \#f. If the node searched for is returned as a node,
+we also have to check if the node is a file. If it is a file, then
+we cannot go further into the filesystem to complete the path. If it 
+isn't a file, then it must be a directory and we can continue our 
+search.
+
+@p
+(define path-lookup
+   (lambda (path)
+      (let loop ([temp-path (path-rest path)]
+                 [filelist (fs-contents (virtual-filesystem))])
+         (let ([first-node (path-first temp-path)])
+            (let ([node (search-filelist-dir filelist first-node)])
+               (cond
+                  [(equal? (path-first temp-path) "")
+		    (search-filelist-file filelist temp-path)]
+                  [else
+                     (if (node? node)
+                         (if (file? node)
+                             #f
+                             (loop (path-rest temp-path)
+                                   (directory-nodes node)))
+                          #f)]))))))
+
+@ |search-filelist| is a simple list recursion procedure that will
+find and return a node if one exists, and false if the node doesn't
+exist. We have two separate |search-filelists|. One will search for
+a file, and one will search for a directory. We need the distinction
+in the case that there is a file and a directory of the same name. If
+there were only one |search-filelist| procedure, it might return the
+file when you want the directory, or vice versa.
+
+@p
+(define search-filelist-file
+  (lambda (filelist name)
+    (cond
+      [(null? filelist) #f]
+      [(and (equal? name (node-name (car filelist))) 
+            (file? (car filelist)))
+       (car filelist)]
+      [else
+	(search-filelist-file (cdr filelist) name)])))
+
+(define search-filelist-dir
+  (lambda (filelist name)
+    (cond
+      [(null? filelist) #f]
+      [(and (equal? name (node-name (car filelist)))
+            (directory? (car filelist)))
+       (car filelist)]
+      [else
+	(search-filelist-dir (cdr filelist) name)])))
+                                   
+@ Test Cases for |path-lookup|.
+(test-begin "path-lookup")
+(fs-contents! (virtual-filesystem)
+	      (cons (make-directory "dir" 
+		      (cons (make-file "file1" 4 "data")
+			    '()))
+		    (fs-contents (virtual-filesystem))))
+
+(test-equal? "can find a directory node" 
+  (car (fs-contents (virtual-filesystem)))
+  (path-lookup "/dir"))
+
+(test-end "path-lookup")
 
 @* Convenience I/O.
 
@@ -856,24 +965,6 @@ this check when before we search for the space requirements.
 (test-end "open-input-file/open-output-file")
 
 @* File Options.
-This section will include file options. Setting a specific file option will 
-enable the user to open a file in several different ways. When you open a
-file to write something, for example, you can have it write in different ways.
-You can add the new string to the end of the current string in your file. You
-can replace the contents of your file with your new string. Additionally, you
-can add your new string to the front of your string in your file.
-
-@p
-(define file-options
-  (make-parameter
-    'replace
-    (lambda (x)
-      (assert (or
-		(equal? x 'replace)
-		(equal? x 'append)))
-      x)))
-
-@ File Options 2.
 optional argument
 (lambda (a b c . d e f)) (d and e and f are optional)
 
@@ -889,8 +980,4 @@ optional argument
   (list 'replace 'append))
 
 
-@* Index.
-
-
-
-     
+@* Index.  
