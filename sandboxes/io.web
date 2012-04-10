@@ -70,6 +70,7 @@ scheme code that can input/output to files. By creating a virtual
 file system, space usage will be able to be controlled as well as
 the ability to maintain the integrity of the top-level filesystem.
 
+
 @* I/O Operations.
 Listed below are the I/O operations that are going to be used when 
 creating, managing, and manipulating the virtual filsystem that this
@@ -79,7 +80,8 @@ for accessing ports on the virtual filesystem. However, there
 are others that can remain as they are, as they only touch ports.
 
 
-@ Procedures that require new definitions.
+\bf{Procedures that require new definitions.}
+\medskip
 These convenience IO procedures will need to be rewritten due to 
 the fact that they directly touch a port or file. Because the
 filesystem is virtual and has its own unique datatype, we need
@@ -147,9 +149,9 @@ file exists, and false if it doesn't. This predicate touches a file.
 and removes the file if it exists and can be deleted. If otherwise, it
 returns an error. This procedure touches a file.
 
-
-@ Procedures that don't require redefinitions.
-
+\medskip
+\bf{Procedures that don't require redefinitions.}
+\medskip
 
 \medskip \noindent {\tt current-input-port}
 \medskip \indent This procedure takes zero arguments and returns 
@@ -489,7 +491,7 @@ contains a list of nodes.
                   (error 'make-directory "not a list" nodes))
                (unless (for-all node? nodes)
                   (error 'make-directory "directory can only contain nodes" nodes))
-               ((p name 0) nodes)))))
+               ((p name) nodes)))))
 
 @* Filesystem Space Constraints.
 In order to make sure that everything in our virtual filesystem
@@ -576,6 +578,7 @@ and sets the |data-port| field to be the input-port.
    (lambda (node)
       (assert (file? node))
       (let ([file node]
+	    [filename (node-name node)]
             [filecontents (data-string (file-data node))]
             [portpos 0])
          (when (port? (data-port (file-data file)))
@@ -643,11 +646,9 @@ port we created earlier, such is it receives a node that must be of
 type file, and the file must not already be open to create the port.
 
 \medskip
-Again, much of the output-port is like the input port. There are
-only two places where the two differ. One is that the output port
-uses a port writer instead of a reader, and the other is that in
-an output port, there is no need to keep the position inside the
-port.
+There areonly two places where the two differ. One is that the output
+port uses a port writer instead of a reader, and the other is that in
+an output port, there is no need to keep the position inside the port.
 \medskip \noindent
 
 @p
@@ -728,6 +729,83 @@ this check when before we search for the space requirements.
   (put-string (file-data file) "hello")
 
 (test-end "test-port-writer")
+
+@ All Open Ports.
+\medskip
+current path should build the path as it goes down.
+
+@p
+(define all-open-ports1
+  (lambda ()
+       (let loop ([filelist (fs-contents (virtual-filesystem))]
+	          [current-path "/"])
+         (cond
+	   [(null? filelist) '()]
+	   [(file? (car filelist))
+	     (if (port? (data-port (file-data (car filelist))))
+		   (cons (cons 
+		   	   (string-append current-path (node-name (car filelist)))
+			   (cons (data-port (file-data (car filelist))) '()))
+		         (loop 
+		           (cdr filelist) 
+		           current-path))
+	         (loop (cdr filelist) current-path))]
+	   [else
+             (begin
+	     (loop (directory-nodes (car filelist)) 
+		   (string-append 
+		     (string-append 
+		       current-path 
+                      (node-name (car filelist))) "/"))
+             (loop (cdr filelist)
+		   current-path))]))))
+
+(define look-for-ports
+  (lambda (ls current-path)
+    (cond
+      [(null? ls) '()]
+      [(file? (car ls))
+	(if (port? (data-port (file-data (car ls))))
+	  (cons (cons 
+		   (string-append current-path (node-name (car ls)))
+		   (cons (data-port (file-data (car ls))) '()))
+		 (look-for-ports (cdr ls) current-path))
+	  (look-for-ports (cdr ls) current-path))]
+      [else
+	(look-for-ports (cdr ls) current-path)])))
+
+(define look-inside-directories
+  (lambda (ls current-path)
+    (cond
+      [(null? ls) '()]
+      [(directory? (car ls))
+	(append 
+	  (look-for-ports 
+	    (directory-nodes (car ls)) 
+	    (string-append 
+	      current-path 
+	      (string-append (node-name (car ls)) "/")))
+	  (look-inside-directories 
+	    (directory-nodes (car ls))
+	    (string-append 
+	      current-path 
+	      (string-append (node-name (car ls)) "/")))
+	  (look-inside-directories (cdr ls) current-path))]
+      [else
+	(look-inside-directories (cdr ls) current-path)])))
+
+(define all-open-ports
+  (lambda ()
+    (let* ([filelist (fs-contents (virtual-filesystem))]
+	  [current-path "/"]
+	  [portls (look-for-ports filelist current-path)])
+      (append (look-inside-directories filelist current-path) portls))))
+      
+
+
+
+
+	      
 
 @* Convenience Procedures.
 Defined below are a series of procedures that will help in maintaining,
@@ -895,6 +973,16 @@ file when you want the directory, or vice versa.
 
 (test-end "path-lookup")
 
+@ Read File Contents.
+This is a convenience procedure for the grader of the system
+to easily go into a file and read the string inside, instead
+of having to open an input port, or travel there manually.
+
+@p
+(define read-direct
+  (lambda (path)
+    (data-string (file-data (path-lookup path)))))
+
 @* Convenience I/O.
 
 @p
@@ -965,12 +1053,7 @@ file when you want the directory, or vice versa.
 (test-end "open-input-file/open-output-file")
 
 @* File Options.
-optional argument
-(lambda (a b c . d e f)) (d and e and f are optional)
 
-(oof filename 'replace)
-(define is-replace? 
-  (and (memq 'replace fileopts) #t))
 
 @p
 (define (is-option? sym)
