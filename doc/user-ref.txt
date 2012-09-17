@@ -1,0 +1,42 @@
+Outline:
+
+Chapter 1: Overview
+	What is MAGS? 
+	Contact Information
+	SRFI :64 Information
+	
+Chapter 2: Test Suites
+	Basic Structure
+	Custom ADTS
+
+Chapter 3: Grading the actual assignment
+	Arguments, structure, etc
+
+Chapter 4: Not Sure as of yet.
+
+
+Index: 
+	Can be beginning or end. Not completely neccesary, but helpful
+
+Other things to address in Docs:
+	Sandboxes
+		the one under which to grade
+		virtual filesystem (for future)
+	Testing
+		list of SRFI testing procedures used in MAGS
+			so that somebody doesn't have to train
+			another person to write test suites for 
+			MAGS.
+
+
+Questions:
+	How to make the test files? test cases? terminology?
+	How to grade the assignment?
+	Why does it matter why we include or load the files
+		that we want to use (in regards to SRFI :64)?
+	Ticks in scheme? <------Infinite Loop Problem
+
+Problems to address:
+	test-eventually doesn't stop
+		if requirements aren't met, it just keeps going
+	infinite loop problem
