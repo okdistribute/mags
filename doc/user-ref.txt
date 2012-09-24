@@ -1,10 +1,36 @@
-Outline:
+Outline: 
+
+Note: I want to add in terminology as I write the documentation.
+	It will be much easier to intuitively put definitions
+	into the writing while I'm writing because I'll know
+	when I need to use a new word. However, I am also
+	trying to include them into the outline.
 
 Chapter 1: Overview
 	What is MAGS? 
 	Contact Information
 	SRFI :64 Information
 	
+Chapter 2: First Test Suites
+	Terminology: 
+		test-suites
+	Basic file structure for a test
+		give a layout for a basic example
+		give an example using length recursive proc.
+
+	Expand the length into a 3 question submission
+		explain how to either put in one file (ew)
+			or use scheme's handy include, etc
+		separate files for test cases for each problem
+
+Chapter 3: Advanced Test Suites
+	Custom ADTs
+
+
+
+##################Original#####################
+leave for reference purposes
+
 Chapter 2: Test Suites
 	Basic Structure
 	Custom ADTS

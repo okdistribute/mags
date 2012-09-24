@@ -1,0 +1,93 @@
+MAGS (McKelvey Auto Grading System) Version 2.0
+Karissa R. McKelvey <krmckelv@indiana.edu>
+Aaron W. Hso <arcfide@sacrideo.us>
+Josh D. Cox <joshcox@indiana.edu>
+
+Overview:
+
+MAGS (short for McKelvey Auto Grading System) is a system that takes
+scheme submissions and performs a range of specified tests on the code.
+In essence, MAGS is an auto-grader that passes or fails a submission
+based on a series of comparative evaluations where an expected final
+answer is compared to an evaluation of a procedure run with certain
+values (actual answer).
+
+MAGS implements an extended SRFI :64 style vocabulary to perform tests.
+
+You are advised to read and have a working understanding of SRFI :64
+before you begin to write test suites for MAGS.
+
+Information on SRFI :64 can be found here:
+
+http://srfi.schemers.org/srfi-64/srfi-64.html
+
+#####Chapter 1#####
+
+
+---Part 1---
+I think it is important to start off the beginning by defining
+some terms that are going to be used frequently throughout the 
+documentation. 
+
+assignment:
+test-suite:
+test-group:
+Problem set:
+
+We are going to delve directly into making our first assignment. The
+best way to learn MAGS is to get your hands dirty. 
+
+Our hypothetical Assignment 1 is going to have one problem, a procedure
+named length. length takes a list and returns the length of the list.
+length should be implemented as a recursive procedure.
+
+length:
+
+(define (length ls)
+	(if (null? ls)
+	    0
+	    (add1 (length (cdr ls)))))
+
+As we can see, the above solution is a correct implementation of length.
+If we run this is the REPL, we get results:
+
+>(length '(a b c))
+3
+
+---Part 2---
+
+Let's expand our working knowledge to creating assignments with multiple
+problems. This works the same way as above, but it is important to note
+that there a couple ways of doing this. In Assignment 1, we included
+everything in one file: problem sets, solutions, etc. This is unnecessary
+and quickly becomes untidy when we create large assignments. 
+
+Assignment 2 is going to have three problems, one of which is a two-part
+problem. 
+
+1. remove - takes a list and an item, removes the first occurence
+	of the item in the list, and returns the list. If the item
+	is not in the list, return #f.
+>(remove '(a b a) 'a)
+'(b a)
+>(remove '(a b a) 'c)
+#f
+
+2. append - takes two lists, ls1 and ls2, and appends them into one list.
+>(append '(a b c) '(d e f))
+'(a b c d e f)
+
+3. a) sum-numbers - takes a list and sums all the numbers in the top level
+	of the list. sum-numbers should pass over an element if it is 
+	not a number.
+	
+	>(sum-numbers '((1 2) a b c 3))
+	3
+
+   b) sum-numbers-deep - takes a list and sums all the numbers in any
+	level of the list. 
+	
+	>(sum-numbers-deep '((1 2) a b c 3))
+	6
+
+
