@@ -1,0 +1,42 @@
+########## Database ###########
+
+a1:
+#username | section | lab   | latest on time submission | latest submission
+#__________________________________________________________________________
+#joshcox  | sabry   | kitty | lab2.ss                   | lab2.ss
+
+lab2:
+#username | section | lab   | latest on time submission | latest submission
+#__________________________________________________________________________
+#joshcox  | sabry   | kitty | lab2.ss                   | lab2.ss
+
+
+a1-tests:
+#section | problem-sets | additional arguments (sandboxes, etc)
+#______________________________________________________________
+#sabry   | a1.ss        | arguments....
+#menzel  | a1.ss        | arguments....
+
+lab1-tests:
+#section | problem-sets | additional arguments (sandboxes, etc)
+#______________________________________________________________
+#sabry   | lab1.ss        | arguments....
+#menzel  | lab1.ss        | arguments....
+
+##########END DATABASE############
+
+Functions:
+	update-latest:
+		a. by lab
+		   by section
+		   all
+		b. latest on time submission
+			latest submission (for appeals, etc)
+	grade
+		a. by lab
+			by section
+			all
+		b. latest on time submission
+			latest submission (appeals, etc)
+Possible Add Ons:
+		

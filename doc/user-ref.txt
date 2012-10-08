@@ -26,6 +26,8 @@ Chapter 2: First Test Suites
 Chapter 3: Advanced Test Suites
 	Custom ADTs
 
+Chapter 4: CLI Interface, Running MAGS, etc
+
 
 
 ##################Original#####################
