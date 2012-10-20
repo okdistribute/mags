@@ -1,0 +1,16 @@
+
+= Entities =
+
+Instructor	(networkid, firstname, lastname)
+Group		(name)
+Assignment	(name)
+Problem		(name, description, testsuite, solution)
+Submitter	(networkid, firstname, lastname, photo)
+Submission	(date, isappeal, code)
+Report		(xml, text)
+Category	(name)
+Date		(type, date)
+Validator	(name, command)
+
+= Relations = 
+

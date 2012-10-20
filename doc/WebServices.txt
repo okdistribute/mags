@@ -27,3 +27,4 @@ Input:
   <AssignmentName>name</AssignmentName>
   <GroupName>name</GroupName>
 </AddGroupToAssignment>
+
