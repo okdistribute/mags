@@ -13,5 +13,7 @@
     Introduction,←'a simple to deploy application server for interacting with the rest of the',NL
     Introduction,←'MAGS ecosystem. It controls the database, provides an easy to use SOAP interface',NL
     Introduction,←'to MAGS functionality and handles most of the grunt work of manageing the system.',NL
+    
+    
 
 :EndNamespace
