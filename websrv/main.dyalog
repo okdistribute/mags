@@ -1,7 +1,7 @@
 ﻿:Namespace Main
 
     ⎕IO←0
-    
+
     ⍝ Init <dbdir> <port>
       Init←{
           dbdir port←⍵
@@ -9,34 +9,33 @@
           _←#.SAWS.Init
           {}'#.WS'#.SAWS.Run port 1
       }
-    
+
+    ⍝ Stop
+    ∇ Stop
+      #.SAWS.Stop ⍬
+      CloseDb
+    ∇
+
     ⍝ OpenDb <dbdir>
       OpenDb←{
-          #.DB.Instructor←'w'#.ddb.open ⍵,'instructor'
+          ⊢#.DB.Instructor←'w'#.ddb.open ⍵,'instructor'
       }
-      
+
     ⍝ CloseDb
     ∇ CloseDb
       ⎕EX'#.DB.Instructor'
     ∇
-    
+
     ⍝ AddInstructors N 3⍴(<networkid> <firstname> <lastname>) ...
       AddInstructors←{
           #.DB.Instructor #.ddb.append⊂[0]⍵
       }
-    
-    ⍝ <type> GetInstructors <pattern>
+
+    ⍝ GetInstructors <fields>
       GetInstructors←{
-          ⍺←''
-          0=⍴⍺:GetInstructorsByNetworkId ⍵
-          'firstname'≡⍺:GetInstructorsByFirstName ⍵
-          'lastname'≡⍺:GetInstructorsByLastName ⍵
-          'UNRECOGNIZED TYPE'⎕SIGNAL 11
-      }
-      
-    ⍝ GetInstructorsByNetworkId <networkid>
-      GetInstructorsByNetworkId←{
-          ⍉↑#.DB.Instructor #.ddb.get #.DB.Instructor.names
+          1≠⍴⍴⍵:⎕SIGNAL 11
+          flds←⊃(#.DB.Instructor.names ⍵)[0≠⍴⍵]
+          ⍉↑#.DB.Instructor #.ddb.get flds
       }
 
 :EndNamespace
