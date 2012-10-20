@@ -18,12 +18,15 @@
 
     ⍝ OpenDb <dbdir>
       OpenDb←{
-          ⊢#.DB.Instructor←'w'#.ddb.open ⍵,'instructor'
+          dbdir←⍵
+          open←{'w'#.ddb.open dbdir,⍵}
+          build←{'#.DB.',⍵,'←open ''',⍵,''''}
+          ⍎∘build¨#.DB.tables
       }
 
     ⍝ CloseDb
     ∇ CloseDb
-      ⎕EX'#.DB.Instructor'
+      ⎕EX¨(⊂'#.DB.'),¨#.DB.tables
     ∇
 
     ⍝ AddInstructors N 3⍴(<networkid> <firstname> <lastname>) ...

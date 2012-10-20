@@ -63,8 +63,8 @@
     ⍝ GetInstructors
       GetInstructors←{
           flds←#.DB.Instructor.names
-          bv←0≠(,'0')(,'1')⍳⍵[;2]
-          rfl←bv/flds
+          bv←0≠(,'0')(,'1')⍳⍵[;2] ⍝ BUG!
+          rfl←bv/flds             ⍝ BUG!
           res←rfl Mat2Tor #.Main.GetInstructors rfl
           1 res
       }
