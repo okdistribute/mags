@@ -11,6 +11,14 @@
     ⍝     firstname    boolean (default: 1)
     ⍝     lastname     boolean (default: 1)
     ⍝   Output: TOR
+    ⍝ ListComments: Lists all the comments
+    ⍝   Pattern: 4
+    ⍝   Input: N/A
+    ⍝   Output: TOR
+    ⍝ AddComments: Add comments to the set of comments
+    ⍝   Pattern: 1
+    ⍝   Input: text+
+    ⍝   Output: N/A
 
     ⍝ BuildAPI
     ∇ R←BuildAPI;pvm;mthd;in
@@ -28,6 +36,20 @@
       pvm[1;1]←⊂'Return lastname field'
       in⍪←1 4⍴1 'lastname' ''pvm
       R,←⊂mthd in BuildTorMLS
+      pvm←1 2⍴'pattern' 4
+      pvm⍪←'documentation' 'Lists all the comments'
+      mthd←1 4⍴1 'ListComments' ''pvm
+      in←0 4⍴''
+      R,←⊂mthd in BuildTorMLS
+      pvm←1 2⍴'pattern' 1
+      pvm⍪←'documentation' 'Adds comments to the server'
+      mthd←1 4⍴1 'AddComments' ''pvm
+      in←0 4⍴''
+      pvm←1 2⍴'datatype' 'string'
+      pvm⍪←'documentation' 'Value of a comment'
+      pvm⍪←'minimum' 1
+      in⍪←1 4⍴1 'text' ''pvm
+      R,←⊂mthd in(0 4⍴'')
     ∇
 
     ⍝ BuildTorMLS
@@ -50,7 +72,7 @@
       GetElem←{
           (⍺[;2]⍳⊂⍵)⊃a[;3],⊂''
       }
-    
+
     ⍝ <field names> Mat2Tor <Record Matrix>
       Mat2Tor←{
           vals←⍪,(⊂''),⍵
@@ -63,11 +85,23 @@
     ⍝ GetInstructors
       GetInstructors←{
           flds←#.DB.Instructor.names
-          bv←0≠(,'0')(,'1')⍳⍵[;2] ⍝ BUG!
-          rfl←bv/flds             ⍝ BUG!
+          bv←0≠(,'0')(,'1')⍳⍵[;2]
+          rfl←bv/flds
           res←rfl Mat2Tor #.Main.GetInstructors rfl
           1 res
       }
 
+    ⍝ ListComments
+      ListComments←{
+          res←(⊂'text')Mat2Tor #.Main.ListComments
+          1 res
+      }
+      
+    ⍝ AddComments
+      AddComments←{
+          vals←(0≠⊃∘⍴¨vals)/vals←⍵[;2]
+          0<⍴vals:0 'Success!'⊣#.Main.AddComments vals
+          0 'No values provided.'
+      }
+       
 :EndNamespace
-

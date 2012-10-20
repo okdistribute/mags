@@ -40,5 +40,15 @@
           flds←⊃(#.DB.Instructor.names ⍵)[0≠⍴⍵]
           ⍉↑#.DB.Instructor #.ddb.get flds
       }
+      
+    ⍝ ListComments
+    ∇ R←ListComments
+      R←⍪#.DB.Comment #.ddb.get'text'
+    ∇
+    
+    ⍝ AddComments
+      AddComments←{
+          #.DB.Comment #.ddb.append ⍵
+      }
 
 :EndNamespace
