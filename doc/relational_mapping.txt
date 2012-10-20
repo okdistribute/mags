@@ -42,4 +42,31 @@ Assignment	===	Contains
 
 Submission	-->	Report
 
+= Minimized Relations =
+
+Instructor	(networkid, firstname, lastname)
+Group		(name)
+Assignment	(name)
+Problem		(name, description, testsuite, solution)
+Submitter	(networkid, firstname, lastname, photo, 
+		 member[Group.name])
+Submission	(Submitter.name, Assignment.name, date, isappeal, code
+		 owner[Submitter.networkid],
+		 submittedfor[Assignment.name],
+		 reportxml, reporttext)
+Category	(name)
+Date		(type, date)
+Validator	(name, command)
+Validates	(Validator.name, Assignment.name, params)
+Teaches		(Instructor.networkid, Group.name)
+HasType		(Assignment.name, Category.name)
+HasDate		(Assignment.name, Date.type, Date.date)
+BelongsTo	(Assignment.name, Group.name)
+Contains	(Assignment.name, Problem.name, number)
+Collaborated	(Submitter.name, Assignment.name, Submission.date
+		 Submitter.name)
+
+= Normal Forms =
+
+I believe the above minimized relational model is also in BCNF form.
 
