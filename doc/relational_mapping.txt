@@ -25,4 +25,21 @@ MemberOf	(Submitter.networkid, Group.name)
 Collaborated	(Submitter.name, Assignment.name, Submission.date
 		 Submitter.name)
 
+= Constraints =
+
+== Bijective ==
+
+Report		***	Submission
+Submission	***	Submitter
+Submission	***	Assignment
+Submitter	***	Group
+
+== Surjective ==
+
+Assignment	===	Contains
+
+== Injective ==
+
+Submission	-->	Report
+
 
