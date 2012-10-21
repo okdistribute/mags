@@ -60,6 +60,7 @@ Joshua Cox
 
 \section{Introduction to the Application Server}
 
+\noindent
 The MAGS Application Server is the glue that binds the various components that 
 make MAGS into a single, integrated application. It is meant to be the single
 unifying program, and as such, it is generally expected that most modifications
@@ -68,7 +69,6 @@ heart, the application server controls access to the database server. It manages
 student rosters, grades, and runs the autograder on submissions it receives.
 The application server is not a front-end, but middleware between front-end
 clients like Guido and the database and autograder reports.
-
 The server itself is written in Dyalog APL, which provides for a rapid, concise 
 code base. It is neutral to the database server used and serves its clients 
 through SOAP exchanges. Should the need for additional services arise, 
@@ -90,7 +90,6 @@ starting and stopping the server also exist in the workspace. As you can see,
 nearly everything is managed through the application server. Each of these 
 commands is documented in more detail further on, but this discussion gives you 
 a few hints to get your bearings.
-
 To begin delving deeper, we will start at the ends, the database schema and 
 the Web Service interface, and then move to the middle, describing the methods 
 and variables of the various namespaces in detail.
