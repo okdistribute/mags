@@ -3,8 +3,9 @@
 \font\titlefont = cmb24
 \font\subtitlefont = cmr17
 \font\subtitlett = cmtt12
-\font\chapterfont = cmb17
-\font\sectionfont = cmb12
+\font\chapterfontbf = cmb17
+\font\chapterfontrm = cmr17
+\font\sectionfont = cmb14
 \font\subsectionfont = cmb10
 \font\bigrm = cmr12
 \font\bigbf = cmb12
@@ -13,13 +14,17 @@
 \newcount\chapterno
 \newcount\sectionno
 
-\def\chapter#1{\advance\chapterno by 1\sectionno = 0
-  \noindent{\chapterfont \the\chapterno. #1}\bigskip}
+\def\chapter#1{\advance\chapterno by 1\sectionno = 0\vfill\break\null\vskip 1in
+  {\noindent\hfill\chapterfontbf Chapter \the\chapterno\par}\medskip
+  {\noindent\hfill\chapterfontrm #1\par}\medskip\hrule\bigskip}
   
 \def\section#1{\advance\sectionno by 1
-  \noindent{\sectionfont \the\chapterno.\the\sectionno. #1}\medskip}
+  \noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
 
 \def\subsection#1{\noindent{\subsectionfont #1}.}
+
+\pageno=0
+\footline{\ifnum\pageno=0\null\else\centerline{\the\pageno}\fi}
 
 \null\vskip 2in
 {\flushright\titlefont
@@ -38,8 +43,8 @@ Karissa McKelvey
 Joshua Cox
 {\subtitlett joshcox@indiana.edu}}
 
-\vfill
-\centerline{\subtitlefont 1st Edition}\break
+\vskip 2in
+\centerline{\subtitlefont 1st Edition}
 
 \chapter{Introduction to MAGS}
 
@@ -48,6 +53,16 @@ Joshua Cox
 \chapter{Module Interface Specifications}
 
 \chapter{Application Server}
+
+\section{Introduction to the Application Server}
+
+\section{Database Schema and Approach}
+
+\section{Web Services}
+
+\section{Public Interface}
+
+\section{Other}
 
 \chapter{Guido Manual Commenting Interface}
 
