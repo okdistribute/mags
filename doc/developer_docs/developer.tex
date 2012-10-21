@@ -19,9 +19,9 @@
   {\noindent\hfill\chapterfontrm #1\par}\medskip\hrule\bigskip}
   
 \def\section#1{\advance\sectionno by 1
-  \noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
+  \bigskip\noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
 
-\def\subsection#1{\noindent{\subsectionfont #1}.}
+\def\subsection#1{\medskip\noindent{\subsectionfont #1}.}
 
 \pageno=0
 \footline{\ifnum\pageno=0\null\else\centerline{\the\pageno}\fi}
@@ -48,13 +48,52 @@ Joshua Cox
 
 \chapter{Introduction to MAGS}
 
-\chapter{Architectural Design Overview}
+\section{Welcome to MAGS}
 
-\chapter{Module Interface Specifications}
+\section{Design Goals}
+
+
+
+\chapter{Architectural Design Overview}
 
 \chapter{Application Server}
 
 \section{Introduction to the Application Server}
+
+The MAGS Application Server is the glue that binds the various components that 
+make MAGS into a single, integrated application. It is meant to be the single
+unifying program, and as such, it is generally expected that most modifications
+of MAGS will not need to touch the core Application Server proper. At the 
+heart, the application server controls access to the database server. It manages
+student rosters, grades, and runs the autograder on submissions it receives.
+The application server is not a front-end, but middleware between front-end
+clients like Guido and the database and autograder reports.
+
+The server itself is written in Dyalog APL, which provides for a rapid, concise 
+code base. It is neutral to the database server used and serves its clients 
+through SOAP exchanges. Should the need for additional services arise, 
+they are easily added using the simple and easy to use SAWS framework.
+
+The server is deployed as a single, standalone workspace. This is much like a 
+Smalltalk image for those familiar with that language. This workspace contains
+a latent expression that automatically launches the server. When hacking the 
+server, one usually opens the {\tt websrv.dws} workspace in a Dyalog session
+and manages the code files (also called scripts) from there. The script files 
+in the {\tt websrv/} directory---they have the {\tt .dyalog} extension---
+correspond to namespaces in the workspace. In modern version of Dyalog, 
+changes made to namespace scripts in the workspace will automatically be 
+reflected in the script files after the user confirms a prompt.
+
+Initializing, creating, managing, and removing the database is also done through
+the {\tt websrv.dws} workspace. Commands for setting server options, as well as
+starting and stopping the server also exist in the workspace. As you can see, 
+nearly everything is managed through the application server. Each of these 
+commands is documented in more detail further on, but this discussion gives you 
+a few hints to get your bearings.
+
+To begin delving deeper, we will start at the ends, the database schema and 
+the Web Service interface, and then move to the middle, describing the methods 
+and variables of the various namespaces in detail.
 
 \section{Database Schema and Approach}
 
@@ -62,11 +101,19 @@ Joshua Cox
 
 \section{Public Interface}
 
-\section{Other}
+\section{Workspace Overview}
+
+\subsection{Reading the code}
+
+\section{The Main Namespace}
+
+\section{The WS Namespace}
 
 \chapter{Guido Manual Commenting Interface}
 
 \chapter{Submission Validation}
+
+\chapter{Interfacing with Autograders or Writing Your Own}
 
 \chapter{Scheme Autograder}
 
