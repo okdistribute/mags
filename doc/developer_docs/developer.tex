@@ -1,0 +1,66 @@
+\input eplain
+
+\font\titlefont = cmb24
+\font\subtitlefont = cmr17
+\font\subtitlett = cmtt12
+\font\chapterfont = cmb17
+\font\sectionfont = cmb12
+\font\subsectionfont = cmb10
+\font\bigrm = cmr12
+\font\bigbf = cmb12
+\font\bigit = cmti12
+
+\newcount\chapterno
+\newcount\sectionno
+
+\def\chapter#1{\advance\chapterno by 1\sectionno = 0
+  \noindent{\chapterfont \the\chapterno. #1}\bigskip}
+  
+\def\section#1{\advance\sectionno by 1
+  \noindent{\sectionfont \the\chapterno.\the\sectionno. #1}\medskip}
+
+\def\subsection#1{\noindent{\subsectionfont #1}.}
+
+\null\vskip 2in
+{\flushright\titlefont
+The Complete Developer's Guide
+to the MAGS System}
+\vskip 0.5in
+{\flushright\subtitlefont
+Aaron W. Hsu
+{\subtitlett arcfide@sacrideo.us}}\bigskip
+
+{\flushright\subtitlefont
+Karissa McKelvey
+{\subtitlett krmckelv@indiana.edu}}\bigskip
+
+{\flushright\subtitlefont
+Joshua Cox
+{\subtitlett joshcox@indiana.edu}}
+
+\vfill
+\centerline{\subtitlefont 1st Edition}\break
+
+\chapter{Introduction to MAGS}
+
+\chapter{Architectural Design Overview}
+
+\chapter{Module Interface Specifications}
+
+\chapter{Application Server}
+
+\chapter{Guido Manual Commenting Interface}
+
+\chapter{Submission Validation}
+
+\chapter{Scheme Autograder}
+
+\chapter{Java Autograder}
+
+\chapter{APL Autograder}
+
+\chapter{Python Autograder}
+
+\chapter{Quick Reference Material}
+
+\bye
