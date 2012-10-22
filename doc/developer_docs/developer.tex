@@ -5,7 +5,7 @@
 \font\subtitlett = cmtt12
 \font\chapterfontbf = cmb17
 \font\chapterfontrm = cmr17
-\font\sectionfont = cmb14
+\font\sectionfont = cmb12
 \font\subsectionfont = cmb10
 \font\bigrm = cmr12
 \font\bigbf = cmb12
@@ -15,11 +15,11 @@
 \newcount\sectionno
 
 \def\chapter#1{\advance\chapterno by 1\sectionno = 0\vfill\break\null\vskip 1in
-  {\noindent\hfill\chapterfontbf Chapter \the\chapterno\par}\medskip
-  {\noindent\hfill\chapterfontrm #1\par}\medskip\hrule\bigskip}
+	{\noindent\hfill\chapterfontbf Chapter \the\chapterno\par}\medskip
+	{\noindent\hfill\chapterfontrm #1\par}\medskip\hrule\bigskip}
   
 \def\section#1{\advance\sectionno by 1
-  \bigskip\noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
+	\bigskip\noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
 
 \def\subsection#1{\medskip\noindent{\subsectionfont #1}.}
 
@@ -62,32 +62,32 @@ Joshua Cox
 
 \noindent
 The MAGS Application Server is the glue that binds the various components that 
-make MAGS into a single, integrated application. It is meant to be the single
+make MAGS into a single, integrated application.  It is meant to be the single
 unifying program, and as such, it is generally expected that most modifications
-of MAGS will not need to touch the core Application Server proper. At the 
-heart, the application server controls access to the database server. It manages
+of MAGS will not need to touch the core Application Server proper.  At the 
+heart, the application server controls access to the database server.  It manages
 student rosters, grades, and runs the autograder on submissions it receives.
 The application server is not a front-end, but middleware between front-end
 clients like Guido and the database and autograder reports.
 The server itself is written in Dyalog APL, which provides for a rapid, concise 
-code base. It is neutral to the database server used and serves its clients 
-through SOAP exchanges. Should the need for additional services arise, 
+code base.  It is neutral to the database server used and serves its clients 
+through SOAP exchanges.  Should the need for additional services arise, 
 they are easily added using the simple and easy to use SAWS framework.
 
-The server is deployed as a single, standalone workspace. This is much like a 
-Smalltalk image for those familiar with that language. This workspace contains
-a latent expression that automatically launches the server. When hacking the 
+The server is deployed as a single, standalone workspace.  This is much like a 
+Smalltalk image for those familiar with that language.  This workspace contains
+a latent expression that automatically launches the server.  When hacking the 
 server, one usually opens the {\tt websrv.dws} workspace in a Dyalog session
-and manages the code files (also called scripts) from there. The script files 
+and manages the code files (also called scripts) from there.  The script files 
 in the {\tt websrv/} directory---they have the {\tt .dyalog} extension---
-correspond to namespaces in the workspace. In modern version of Dyalog, 
+correspond to namespaces in the workspace.  In modern version of Dyalog, 
 changes made to namespace scripts in the workspace will automatically be 
 reflected in the script files after the user confirms a prompt.
 
 Initializing, creating, managing, and removing the database is also done through
-the {\tt websrv.dws} workspace. Commands for setting server options, as well as
-starting and stopping the server also exist in the workspace. As you can see, 
-nearly everything is managed through the application server. Each of these 
+the {\tt websrv.dws} workspace.  Commands for setting server options, as well as
+starting and stopping the server also exist in the workspace.  As you can see, 
+nearly everything is managed through the application server.  Each of these 
 commands is documented in more detail further on, but this discussion gives you 
 a few hints to get your bearings.
 To begin delving deeper, we will start at the ends, the database schema and 
@@ -95,6 +95,424 @@ the Web Service interface, and then move to the middle, describing the methods
 and variables of the various namespaces in detail.
 
 \section{Database Schema and Approach}
+
+\noindent
+The application server uses a fairly simple database schema.
+Our relational model is believed to be in BC normal form and 
+should have no redundancy of data storage.
+Moreover, we explicitely do not permit {\tt null} data in any attribute.
+Most relations have only a simple natural key and we avoid any 
+artifical keys. Each table may be an entity, a relation, or mixed. 
+Mixed tables are entities with certain bijective relations merged into them.
+All fields contain atomic data.
+We make heavy use of foreign and normal key constraints, 
+but few other constraints are necessary for our model.
+
+This chapter documents the database schema in detail and should be 
+considered the authoritative reference. 
+Inconsistencies between this document and the application server code should be 
+treated as serious bugs. The following is a short summary of each table's 
+purpose; each heading in this section focuses on detailing one of these tables.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad #	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Entities}	& {\bf Relations}	& {\bf Mixed}\cr
+		\noalign{\hrule}		
+		Instructor	& Validates	& Submitter \cr
+		Groups	& Teaches	& Submission \cr
+		Assignment	& HasType	& \cr
+		Problem	& HasDeadline	& \cr
+			& BelongsTo	& \cr
+			& Contains	& \cr
+			& Collaborated	& \cr
+			& CommentsOn	& \cr
+	}
+}$$
+
+\subsection{Instructor Entity}
+This entity holds the set of all non-students, 
+whether teachers, assistents, or just graders.
+A member of this entity is allowed to grade assignment submissions
+based on what groups they may ``teach.''
+Thus, not all instructors may grade all submissions.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		networkid	& Fixed String	& --- \cr
+		firstname	& Variable String	& --- \cr
+		lastname	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent\flushleft
+Natural Key: {\tt networkid}
+Participates in these relations: Teaches}
+
+\subsection{Group Entity}
+This entity currently records the names of various groups,
+which may correspond to either internal groups for a class
+or to class sections or any other division.
+It serves as the divider by which submitters are grouped.
+Assignments are also assigned to specific groups.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		name	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent\flushleft
+Natural Key: {\tt name}
+Participates in these relations: Submitter.member, Teaches, and BelongsTo}
+
+\subsection{Assignment Entity}
+An assignment is a named collection of problems.
+Problem Set might be another good name for it.
+Assignments are given to groups of students and have auto-graders
+associated with them in the form of validators and problem auto-graders.
+When a submitter submits a submission, 
+it is submitted for a particular assignment.
+Assignments may be reused or used for particular groups
+(that is, used for more than one group). 
+Assignments can be categorized.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		name	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt name}\par\noindent
+Participates in these relations: Submission.submittedfor, Validates,
+HasType, HasDeadline, BelongsTo, Contains, Collaborated, CommentsOn\par}
+
+\subsection{Problem Entity}
+Problems are the central entity in MAGS. 
+They represent the unit of grading and most everything else is based on 
+the concept of grading a problem.
+Autograders are applied to individual problems. 
+They are composed of a name, a description, a test suite, and a solution.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		name	& Variable String	& --- \cr
+		description	& Variable String	& --- \cr
+		testsuite	& Variable String	& --- \cr
+		solution	& Variable String & --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt name}\par\noindent
+Participates in these relations: Contains, CommentsOn\par}
+
+\subsection{Submitter Entity/Relation}
+This mixed entity/relation captures the concept
+of a student or submitter of solutions.
+Each submitter belongs to a group.
+Currently, a submitter may be a member of only one group,
+but this may change in the future.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		networkid	& Fixed String	& --- \cr
+		firstname	& Variable String	& --- \cr
+		lastname	& Variable String	& --- \cr
+		member	& ---	& {\tt Group.name} \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt networkid}\par\noindent
+Participates in these relations: Submission.owner, Collaborated, CommentsOn \par}
+
+\subsection{Submission Entity/Relation}
+A submission is a proposed solution to a given assignment
+submitted by a submitter. It has a submission date associated with 
+it and may be marked as an appeal, meaning it is a resubmission
+of a previous submission.
+The autograder report is attached to the submission directly 
+because submissions are intended to be graded immediately on submission
+and should have only a single report.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		owner	& ---	& {\tt Submitter.networkid} \cr
+		submittedfor	& ---	& {\tt Assignment.name} \cr
+		date	& Date	& --- \cr
+		isappeal	& Boolean	& --- \cr
+		code	& Variable String	& --- \cr
+		report	& XML	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt owner}, {\tt submittedfor}, {\tt date}\par\noindent
+Participates in these relations: Collaborated, CommentsOn \par}
+
+\subsection{Category Entity}
+Categories are simple organizers for assignments. 
+They are largely informational.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		name	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt name}\par\noindent
+Participates in these relations: HasType \par}
+
+\subsection{Deadline Entity}
+A deadline is some date with a type tag that can be used to track certain
+features of a submission, such as whether it was submitted on time.
+Assignments may have many such deadlines.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		type	& Variable String	& --- \cr
+		date	& Date	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt type}, {\tt date}\par\noindent
+Participates in these relations: HasDeadline \par}
+
+\subsection{Validator Entity}
+A validator is a program which will be run to verify that a submission 
+is acceptable before running the autograder on it.
+A failed validator results in rejecting a submission.
+Unlike autograders, validators are associated with assignments.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		name	& Variable String	& --- \cr
+		command	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt name}\par\noindent
+Participates in these relations: Validates \par}
+
+\subsection{Comment Entity}
+A comment is just some text.
+We have an entity for it because Guido has a concept of reusing comments.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		text	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt text}\par\noindent
+Participates in these relations: CommentsOn \par}
+
+\subsection{Validates Relation}
+Indicates that a given validator should be used to validate 
+submissions for a particular assignment. It also prescribes any 
+additional parameters for use when calling the validator.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		validator	& ---	& {\tt Validator.name} \cr
+		assignment	& ---	& {\tt Assignment.name} \cr
+		params	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt validator}, {\tt assignment}, {\tt params}\par}
+
+\subsection{Teaches Relation}
+Binds or associates a member of Instructors as assigned to or grading a group.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		teacher	& ---	& {\tt Instructor.networkid} \cr
+		group	& ---	& {\tt Group.name} \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt teacher}, {\tt group}\par}
+
+\subsection{HasType Relation}
+Associates an assignment with a category. 
+Assignments may belong to multiple categories.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		assignment	& ---	& {\tt Assignment.name} \cr
+		category	& ---	& {\tt Category.name} \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt assignment}, {\tt category}\par}
+
+\subsection{HasDeadline Relation}
+Assigns or gives an assignment a deadline,
+where deadlines have types and dates.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		assignment	& ---	& {\tt Assignment.name} \cr
+		type	& ---	& {\tt Deadline.type} \cr
+		date	& ---	& {\tt Deadline.date} \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt assignment}, {\tt type}, {\tt date}\par}
+
+\subsection{BelongsTo Relation}
+Associates an assignment to a group.
+Assignments may belong to more than one group.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		assignment	& ---	& {\tt Assignment.name} \cr
+		group	& ---	& {\tt Group.name} \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt assignment}, {\tt group}\par}
+
+\subsection{Contains Relation}
+Assigns a problems to an assignment with a given problem number.
+Assignments should not reuse a problem,
+but multiple assignments may use the same problem.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		assignment	& ---	& {\tt Assignment.name} \cr
+		problem	& ---	& {\tt Problem.name} \cr
+		number	& Variable String	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt assignment}, {\tt problem}\par}
+
+\subsection{Collaborated Relation}
+Indicates other students with whom the submitter of a submission
+collaborated with during the completion of an assignment.
+While other collaborations may have occurred, only submitter 
+collaborations are currently tracked.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		submitter	& ---	& {\tt Submission.owner} \cr
+		assignment	& ---	& {\tt Submission.submittedfor} \cr
+		submitdate	& ---	& {\tt Submission.date} \cr
+		collaborator	& ---	& {\tt Submitter.name} \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt submitter}, {\tt assignment}, {\tt submitdate}, {\tt collaborator}\par}
+
+\subsection{CommentsOn Relation}
+An instructor comments on a submission by taking a comment 
+and associating it with a start and end position somewhere in the submission. 
+A comment may be used in multiple places in an assignment. 
+Additionally a comment is marked as relating to a specific problem.
+
+$$\vbox{
+	\offinterlineskip
+	\halign{
+		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
+		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
+		\noalign{\hrule}		
+		comment	& ---	& {\tt Comment.text} \cr
+		submitter	& ---	& {\tt Submission.owner} \cr
+		assignment	& ---	& {\tt Submission.submittedfor} \cr
+		submitdate	& ---	& {\tt Submission.date} \cr
+		problem	& ---	& {\tt Problem.name} \cr
+		start	& Int	& --- \cr
+		end	& Int	& --- \cr
+	}
+}$$
+
+{\noindent
+Natural Key: {\tt comment}, {\tt submitter}, {\tt assignment},
+{\tt submitdate}, {\tt problem}, {\tt start}, {\tt end}\par}
 
 \section{Web Services}
 
