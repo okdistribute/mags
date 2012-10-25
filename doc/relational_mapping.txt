@@ -1,0 +1,77 @@
+
+= Entities =
+
+Instructor	(networkid, firstname, lastname)
+Group		(name)
+Assignment	(name)
+Problem		(name, description, testsuite, solution)
+Submitter	(networkid, firstname, lastname, photo)
+Submission	(Submitter.name, Assignment.name, date, isappeal, code, grade)
+Report		(xml, text)
+Category	(name)
+Date		(type, date)
+Validator	(name, command)
+Report		(Submitter.name, Assignment.name, Submission.date, xml, text)
+Comment		(text)
+
+= Relations = 
+
+Validates	(Validator.name, Assignment.name, params)
+Teaches		(Instructor.networkid, Group.name)
+HasType		(Assignment.name, Category.name)
+HasDate		(Assignment.name, Date.type, Date.date)
+BelongsTo	(Assignment.name, Group.name)
+Contains	(Assignment.name, Problem.name, number)
+MemberOf	(Submitter.networkid, Group.name)
+Collaborated	(Submitter.name, Assignment.name, Submission.date
+		 Submitter.name)
+CommentsOn	(Comment.text, Submitter.name, Assignment.name, Submission.date,
+		 Problem.name, start, end)
+
+= Constraints =
+
+== Bijective ==
+
+Report		***	Submission
+Submission	***	Submitter
+Submission	***	Assignment
+Submitter	***	Group
+
+== Surjective ==
+
+Assignment	===	Contains
+
+== Injective ==
+
+Submission	-->	Report
+
+= Minimized Relations =
+
+Instructor	(networkid, firstname, lastname)
+Group		(name)
+Assignment	(name)
+Problem		(name, description, testsuite, solution)
+Submitter	(networkid, firstname, lastname, photo, 
+		 member[Group.name])
+Submission	(owner[Submitter.networkid], submittedfor[Assignment.name], 
+		 date, isappeal, code, reportxml, reporttext)
+Category	(name)
+Deadline	(type, date)
+Validator	(name, command)
+Validates	(validator[Validator.name], assignment[Assignment.name], params)
+Teaches		(teacher[Instructor.networkid], group[Group.name])
+HasType		(assignment[Assignment.name], category[Category.name])
+HasDeadline	(assignment[Assignment.name], type[Deadline.type], 
+		 date[Deadline.date])
+BelongsTo	(assignment[Assignment.name], group[Group.name])
+Contains	(assignment[Assignment.name], problem[Problem.name], number)
+Collaborated	(submitter[Submitter.name], assignment[Assignment.name], 
+		 submitdate[Submission.date], collaborator[Submitter.name])
+CommentsOn	(comment[Comment.text], submitter[Submitter.name], 
+		 assignment[Assignment.name], submitdate[Submission.date],
+		 problem[Problem.name], start, end)
+
+= Normal Forms =
+
+I believe the above minimized relational model is also in BCNF form.
+

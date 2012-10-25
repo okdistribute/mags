@@ -1,0 +1,30 @@
+WebServices Documentation
+=========================
+
+The following documents the methods and interface defined by the WSDL in 
+the MAGS server. 
+
+--------------------------------------------------------------------------------
+Method: CreateAssignment
+
+Input:
+
+<CreateAssignment>Name</CreateAssignment>
+
+Output:
+
+<MethodResult>
+  <Code>...</Code>
+  <Message>...</Message>
+</MethodResult>
+
+--------------------------------------------------------------------------------
+Method: AddGroupToAssignment
+
+Input:
+
+<AddGroupToAssignment>
+  <AssignmentName>name</AssignmentName>
+  <GroupName>name</GroupName>
+</AddGroupToAssignment>
+

@@ -1,0 +1,1066 @@
+\def\title{SAFE IO LIBRARY (VERSION 2.0)}
+\def\topofcontents{\null\vfill
+  \centerline{\titlefont MAGS: Safe I/O Library}
+  \vskip 15pt
+  \centerline{(Version 2.0)}
+  \vfill}
+\def\botofcontents{\vfill
+\noindent
+Copyright $\copyright$ 2012
+Joshua D. Cox
+\smallskip\noindent
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+\smallskip\noindent
+THE SOFTWARE IS PROVIDED ``AS IS'' AND THE AUTHOR DISCLAIMS ALL
+WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+}
+
+@* Introduction.
+This library contains procedures for constructing and 
+manipulating a virtual file system for a sandbox environment.
+
+@(io.sls@>=
+(library (mags io)
+   (export
+    virtual-filesystem
+    current-space-used
+    touch
+    mkdir
+    close-port
+    port
+    path-lookup
+    make-virtual-textual-input-port
+    make-virtual-textual-output-port
+    open-input-file
+    open-output-file
+    call-with-input-file
+    call-with-output-file
+    with-input-from-file
+    with-output-to-file
+    file-exists?
+    file-options)
+   (import
+      (srfi :64)
+      (mags sandbox)
+      (except (chezscheme)
+         delete-file
+         file-exists?
+         open-input-file
+         open-output-file
+         call-with-input-file
+         call-with-output-file
+         with-input-from-file
+         with-output-to-file
+	 close-port
+	 file-options))
+      (include "io.ss"))
+
+@* Overview.
+This library creates a sandbox virtual file system. The main purpose
+of this sandbox is to enable the mags auto-grading system to grade
+scheme code that can input/output to files. By creating a virtual
+file system, space usage will be able to be controlled as well as
+the ability to maintain the integrity of the top-level filesystem.
+
+
+@* I/O Operations.
+Listed below are the I/O operations that are going to be used when 
+creating, managing, and manipulating the virtual filsystem that this
+library outputs. As we are working with virtual filesystems, there
+will be some procedures that will need to be rewritten to allow
+for accessing ports on the virtual filesystem. However, there
+are others that can remain as they are, as they only touch ports.
+
+
+\bf{Procedures that require new definitions.}
+\medskip
+These convenience IO procedures will need to be rewritten due to 
+the fact that they directly touch a port or file. Because the
+filesystem is virtual and has its own unique datatype, we need
+to customize procedures that will open or close the virtual 
+files inside the virtual filesystem.
+
+
+\medskip \noindent {\tt open-file-input-port}
+\medskip \indent The above procedure takes a path, file-options, 
+a buffer mode, and a transcoder and opens an input port at a 
+specific location that you give for path. This procedure touches
+a file
+
+\medskip \noindent {\tt open-file-output-port}
+\medskip \indent The above procedure takes a path, file-options, a 
+buffer mode, and a transcoder and opens an output port at a specific 
+location that you give for path. This procedure touches a file.
+
+\medskip \noindent {\tt open-file-input/output-port}
+\medskip \indent The above procedure takes a path, file-options, a 
+buffer mode, and a transcoder and opens an input/output port for a 
+file at a specific location that you give for path. This procedure 
+touches a file.
+
+\medskip \noindent {\tt open-input-file}
+\medskip \indent This procedure opens a port to a specific path, as if
+by using open-file-input-port with default options. This procedure 
+touches a file.
+
+\medskip \noindent {\tt open-output-file}
+\medskip \indent open-output-file opens a port to a specific path, as if
+by using open-file-output-port with default options. This procedure
+touches a file.
+
+\medskip \noindent {\tt call-with-input-file}
+\medskip \indent This procedure takes a path and a procedure. It opens
+an input port as if by using open-file-input-port and then passes
+it to the subsequent procedure. This procedure touches a file.
+
+\medskip \noindent {\tt call-with-output-file}
+\medskip \indent This procedure takes a path and a procedure. It opens
+and input port as if by using open-file-output-port and then passes it
+to the subsequent procedure. This procedure touches a file.
+
+\medskip \noindent {\tt with-input-from-file}
+\medskip \indent This procedure takes a path and a thunk (a procedure
+that takes zero arguments). It opens an input port temporarily, as if by 
+using open-file-input-port while the thunk runs. If thunk returns, the 
+port is closed and the current input port is restored to its previous 
+value. This procedure touches a file.
+
+\medskip \noindent {\tt with-output-to-file}
+\medskip \indent This procedure takes a path and a thunk (a procedure
+that takes zero arguments). It opens an output port temporarily, as if 
+by using open-file-output-port while the thunk runs. If thunk returns,
+the port is closed and the current output port is restored to its previous
+value. This procedure touches a file. 
+
+\medskip \noindent {\tt file-exists?}
+\medskip \indent This predicate takes a path and returns true if the 
+file exists, and false if it doesn't. This predicate touches a file.
+
+\medskip \noindent {\tt delete-file}
+\medskip \indent This procedure takes a path represented by a string
+and removes the file if it exists and can be deleted. If otherwise, it
+returns an error. This procedure touches a file.
+
+\medskip
+\bf{Procedures that don't require redefinitions.}
+\medskip
+
+\medskip \noindent {\tt current-input-port}
+\medskip \indent This procedure takes zero arguments and returns 
+the input port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt current-output-port}
+\medskip \indent This procedure takes zero arguments and returns 
+the output port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt port?}
+\medskip \indent This predicate takes one argument and returns 
+whether it is a port or not. This predicate touches a port.
+
+\medskip \noindent {\tt close-port}
+\medskip \indent This procedure takes a port and closes it. This 
+procedure touches a port.
+
+\medskip \noindent {\tt read}
+\medskip \indent This procedure takes a port and returns a Scheme datum
+object or an eof object that is read from the file. Read is different
+from get-datum in the fact that in the chance that an input port is not
+specified, it defaults to the current input port. This procedure touches
+a port.
+
+\medskip \noindent {\tt read-char}
+\medskip \indent This procedure takes a port and returns the next
+character from the port. read-char is different from get-char in the 
+fact that if an input port is not supplied, it defaults to the current
+input port. This procedure touches a port.
+
+\medskip \noindent {\tt peek-char}
+\medskip \indent This procedure takes a port and returns the next
+character form the port. peek-char is different from lookahead-char
+in the fact that if an input port is not supplied, it default to the 
+current input port. This procedure touches a port.
+
+\medskip \noindent {\tt write}
+\medskip \indent This procedure takes an object and an output port and
+writes the object to the output port specified. write is different from
+put-datum by the fact that if no output port is specified, it defaults
+to the current output port. This procedure touches a port.
+
+\medskip \noindent {\tt display}
+\medskip \indent Similar to write, this procedure takes an object and
+an output port and write to prementioned port. However, it differs from
+write by printing strings and characters as if by using put-string
+or put-char (it prints strings and chars without their special characters
+syntax). This procedure touches a port.
+
+\medskip \noindent {\tt write-char}his procedure takes zero arguments and returns 
+the output port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt port?}
+\medskip \indent This predicate takes one argument and returns 
+whether it is a port or not. This predicate touches a port.
+
+\medskip \noindent {\tt close-port}
+\medskip \indent This procedure takes a port and closes it. This 
+procedure touches a port.
+
+\medskip \noindent {\tt read}
+\medskip \indent This procedure takes a port andhis procedure takes zero arguments and returns 
+the output port that is open. This procedure touches a port.
+
+\medskip \noindent {\tt port?}
+\medskip \indent This predicate takes one argument and returns 
+whether it is a port or not. This predicate touches a port.
+
+\medskip \noindent {\tt close-port}
+\medskip \indent This procedure takes a port and closes it. This 
+procedure touches a port.
+
+\medskip \noindent {\tt read}
+\medskip \indent This procedure takes a port and returns a Scheme datum
+object or an eof object that is read from the file. Read is different
+from get-datum in the fact that in the chance that an input port is not
+specified, it defaults to the current input port. This procedure touches
+a port.
+
+\medskip \noindent {\tt read-char}
+\medskip \indent This procedure takes a port and returns the next
+character from the port. read-char is different from get-char in the 
+fact that if an input port is not supplied, it defaults to the current
+input port. This procedure touches a port.
+
+\medskip \noindent {\tt peek-char}
+\medskip \indent This procedure takes a port and returns the next
+character form the port. peek-char is different from lookahead-char
+in the fact that if an input port is not supplied, it default to the 
+current input port. This procedure touches a port.
+
+\medskip \noindent {\tt write}
+\medskip \indent This procedure takes an object and an output port and
+writes the object to the output port specified. write is different from
+put-datum by the fact that if no output port is specified, it defaults
+to the current output port. This procedure touches a port.
+
+\medskip \noindent {\tt display}
+\medskip \indent Similar to write, this procedure takes an object and
+an output port and write to prementioned port. However, it differs from
+write by printing strings and characters as if by using put-string
+or put-char (it prints strings and chars without their special characters
+syntax). This procedure touches a port.
+
+\medskip \noindent {\tt write-char}
+\medskip \noindent This procedure takes a char and an output port and
+writes the char to the file in the open port. This procedure is similar
+to put-char, differing in the fact that if no output port is specified,
+it will default to the current output port. This procedure touches
+a port. returns a Scheme datum
+object or an eof object that is read from the file. Read is different
+from get-datum in the fact that in the chance that an input port is not
+specified, it defaults to the current input port. This procedure touches
+a port.
+
+\medskip \noindent {\tt read-char}
+\medskip \indent This procedure takes a port and returns the next
+character from the port. read-char is different from get-char in the 
+fact that if an input port is not supplied, it defaults to the current
+input port. This procedure touches a port.
+
+\medskip \noindent {\tt peek-char}
+\medskip \indent This procedure takes a port and returns the next
+character form the port. peek-char is different from lookahead-char
+in the fact that if an input port is not supplied, it default to the 
+current input port. This procedure touches a port.
+
+\medskip \noindent {\tt write}
+\medskip \indent This procedure takes an object and an output port and
+writes the object to the output port specified. write is different from
+put-datum by the fact that if no output port is specified, it defaults
+to the current output port. This procedure touches a port.
+
+\medskip \noindent {\tt display}
+\medskip \indent Similar to write, this procedure takes an object and
+an output port and write to prementioned port. However, it differs from
+write by printing strings and characters as if by using put-string
+or put-char (it prints strings and chars without their special characters
+syntax). This procedure touches a port.
+
+\medskip \noindent {\tt write-char}
+\medskip \noindent This procedure takes a char and an output port and
+writes the char to the file in the open port. This procedure is similar
+to put-char, differing in the fact that if no output port is specified,
+it will default to the current output port. This procedure touches
+a port.
+\medskip \noindent This procedure takes a char and an output port and
+writes the char to the file in the open port. This procedure is similar
+to put-char, differing in the fact that if no output port is specified,
+it will default to the current output port. This procedure touches
+a port.
+
+\medskip \noindent {\tt close-input-port}
+\medskip \indent This procedure takes an input port and performs the
+procedure of closing the port. This procedure is equivalent to the
+close-port procedure. This procedure touches a port.
+
+\medskip \noindent {\tt close-output-port}
+\medskip \indent This procedure takes an output port and performs the
+procedure of closing the port. This procedure is equivalent to the
+close-port procedure. This procedure touches a port.
+
+
+@* Virtual Filesystem Datatype.
+To house all of the files and directories that we want to add to
+the filesystem, we have to create something that will hold them
+all. To do this, we define a new record type named filesystem.
+Records in scheme create new datatypes that are unique to 
+themselves.
+
+\medskip \noindent
+Below you can see the code for the filesystem ADT. There are two fields
+in the datatype, one that we call filelist and one that we call maxsize.
+
+\medskip \indent
+{\tt filelist}
+\medskip \indent \indent
+The filelist has a list structure that will hold all of the files
+and directories inside the file system. From the protocol, 
+you can see that if you attempt to initialize a virtual filesystem
+and the filelist isn't of the type list, it will stop and return an
+error.
+
+\medskip \indent
+{\tt maxsize}
+\medskip \indent \indent
+The maxsize field contains an integer that represents that maximum
+amount of characters you can have in all of your files in your
+filesystem. This will be explained more fully in detail under the 
+Space Usage section, but basically this will be used to make sure
+nothing is written into a file if it pushes the overall space usage
+above the set parameter. 
+
+\medskip
+Along with the fields, filelist and masxsize, there are also 
+accessors and constructors that the record type automatically
+makes for the fields. As we can see below in our filesystem,
+we have two fields that are mutable (changeable). One
+has uniquely a uniquely defined accessor and constructor,
+and the other follows the default structure.
+
+\medskip
+For filelist, you access it by performing the procedure
+fs-contents on a virtual filesystem, like so:
+
+\medskip
+(fs-contents (virtual-filesystem))
+\medskip
+
+To edit your filelist, you need to use the constructor, fs-contents!
+(with a bang (!)). Hypothetically, let's say you want to add a file
+to your filelist. You would do this like so:
+
+\medskip
+(fs-contents! (virtual-filesystem) 
+  (cons (make-file "file" (make-data "hello world")) 
+	(fs-contents (virtual-filesystem))))
+\medskip
+
+You use the default accessors and constructors the same way,
+except the names are different.
+
+\medskip
+Accessors: <record-name>-<field-name> : filesystem-maxsize
+\smallskip
+Constructors:<record-name>-<field-name>-set! : filesystem-maxsize-set!
+\medskip
+
+@p
+(define-record-type filesystem
+   (fields (mutable filelist fs-contents fs-contents!)
+	   (mutable maxsize))
+      (protocol
+         (lambda (n)
+            (lambda (filelist maxsize)
+               (unless (list? filelist)
+                  (error 'make-filesystem "filelist is not a list" filelist))
+	       (unless (>= maxsize 0)
+		  (error 'make-filesystem "size is not a valid integer" size))
+               (n filelist maxsize)))))
+
+@ Current Virtual Filesystem.
+The code below creates a virtual filesystem and holds it inside the parameter
+virtual-filesystem. It can be called by simply running the procedure, like so:
+
+\medskip \indent
+(virtual-filesystem)
+\medskip
+
+@p
+(define virtual-filesystem
+   (make-parameter
+      (make-filesystem '() 500)))
+
+
+@ Test cases for the Virtual Filesystem.
+
+@(io-test.ss@>=
+(test-begin "test-virtual-filesystem")
+(virtual-filesystem)
+(test-assert "filesystem1 == filesystem" (filesystem? filesystem1))
+(test-end "test-virtual-filesystem")
+
+@* Nodes.
+Remember that filelist inside the filesystem datatype? It has a list
+structure and contains elements that are either files or directories.
+Those elements all have one thing in common; they are nodes. A node
+is just something with a name. The node datatype isn't very useful 
+from a usability standpoint, because for our files and directories,
+we're going to have to have other points of interest, such as size 
+or contents. In order to save redundant code, and to show the 
+connection between files and directories, we give them both the
+same "parent" datatype, node.
+
+@p
+(define-record-type node
+   (fields (mutable name))
+      (protocol
+         (lambda (n)
+            (lambda (name)
+               (unless (string? name)
+                  (error 'make-node "name is not a string" name))
+               (n name)))))
+
+@ |File| is our record type that in addition to having a name (like
+it's parent record type, node), has data. 
+
+@p
+(define-record-type file (parent node)
+   (fields (mutable data))
+      (protocol
+         (lambda (p)
+            (lambda (name data)
+               (unless (data? data)
+                  (error 'make-file "data is not of correct data structure" data))
+               ((p name) data)))))
+
+@ Data Record Type.
+In order to provide ease of managing space constraints, we will 
+define a record type data. This will be put into the data field
+of a file and will contain three things. It will contain a 
+string, which will be the actualy data of the file. It will
+contain a field that will either contain a port or a false 
+value. It will also contain a number, which will describe the
+total amount of space used by the file, whether you are 
+writing to it or it is in a non-changing state.
+
+\medskip
+When you create a data item, all you need to pass the
+procedure is the string that will make up the "data" or "contents"
+of our data structure. The constructor for the datatype will
+actually put the size (length of the data string) in by itself.
+Additionally, the port field will always be initiated as \#f.
+
+@p
+(define-record-type data
+  (fields (mutable string)
+	  (mutable size)
+	  (mutable port))
+  (protocol
+    (lambda (n)
+      (lambda (string)
+	(unless (string? string)
+	  (error 'make-data "Data isn't entered as a string" string))
+	(n string (string-length string) #f)))))
+
+@ |Directory| is a type of node that contains a field "nodes" that 
+contains a list of nodes. 
+
+@p
+(define-record-type directory (parent node)
+   (fields (mutable nodes))
+      (protocol
+         (lambda (p)
+            (lambda (name nodes)
+               (unless (list? nodes) 
+                  (error 'make-directory "not a list" nodes))
+               (unless (for-all node? nodes)
+                  (error 'make-directory "directory can only contain nodes" nodes))
+               ((p name) nodes)))))
+
+@* Filesystem Space Constraints.
+In order to make sure that everything in our virtual filesystem
+is maintained and controlled by the operator of the system,
+we can add some functionality that will bring into play Filesystem
+Space Constraints. What this means is that when you initialize your
+filesystem, you can specify the maximum amount of space that you 
+want your filesystem to take up. 
+
+@ |space-used-in-filesystem| is a procedure that takes a filelist
+and returns the total amount of space taken up within that filelist.
+It recursively travels down the filelist. If it encounters a file,
+it adds the size onto the total. If it encounters a directory,
+it will add up the sizes of all the files in the directory and then
+back out and return to the main filelist and continue down it.
+
+@p
+(define space-used-in-filesystem
+  (lambda (ls)
+    (cond
+      [(null? ls) 0]
+      [(file? (car ls)) 
+	(begin	   
+       	   (+ (data-size (file-data (car ls))) 
+	      (space-used-in-filesystem (cdr ls))))]
+      [else
+	(+ (space-used-in-filesystem (directory-nodes (car ls))) 
+	   (space-used-in-filesystem (cdr ls)))])))
+
+@ |current-space-used| is a thunk that runs space-used-in-filesystem
+and returns the total amount of space used in the |virtual-filesystem|.
+We have this here so we can easily find out how much space is used
+in our |(virtual-filesystem)| parameter.
+
+@p
+(define current-space-used
+  (lambda ()
+   (space-used-in-filesystem 
+    (fs-contents (virtual-filesystem)))))
+
+@ Space Usage Tests.
+
+@(io-test.ss@>=
+(test-begin "test-space-usage")
+(virtual-filesystem)
+(test-equal? "empty fs takes up zero space" 0 (current-space-used))
+
+(fs-contents! (virtual-filesystem)
+	      (cons (make-file "file1.txt" 4 "data")
+		    (fs-contents (virtual-filesystem))))
+(test-equal? "new fs takes up 4 space" 4 (current-space-used))
+
+(fs-contents! (virtual-filesystem)
+	      (cons (make-file "file2.txt" 5 "data1")
+		    (fs-contents (virtual-filesystem))))
+(test-equal? "new fs takes up 9 space" 9 (current-space-used))
+(test-end "test-space-usage")
+
+@* Virtual Ports.
+To access the files on our virtual filesystem for reading or writing,
+we have to utilize ports. However, since we have defined our own type
+of filesystem, we will also have to define our own port initialization.
+
+@ Input Port.
+\medskip
+The procedure |make-virtual-textual-input-port| will create a textual
+input port for reading data from virtual files. The procedure begins
+by asserting that everything in the file is as it should be: the node 
+is in fact a file, there isn't a port already open, and the data
+of the file is represented as a string.
+\medskip
+Next, it creates a variable inside a let named input-port that holds
+the value of creating a custom port, which takes a reader, a 
+thunk that returns the port position, a procedure that updates the
+port position, and a closing procedure to do any extra adjustments
+to the file before you close it. 
+\medskip
+After all of that is created, the procedure reaches into the file
+and sets the |data-port| field to be the input-port.
+
+
+@p
+(define make-virtual-textual-input-port 
+   (lambda (node)
+      (assert (file? node))
+      (let ([file node]
+	    [filename (node-name node)]
+            [filecontents (data-string (file-data node))]
+            [portpos 0])
+         (when (port? (data-port (file-data file)))
+            (error 'filename "The file is already open."))
+         (assert (string? filecontents))
+         (let ([input-port
+                 (make-custom-textual-input-port filename
+                    (lambda (string start n) 
+                      @<Read from port@>)
+                    (lambda () portpos)
+                    (lambda (pos) (set! portpos pos))
+                    (lambda () (data-port-set! (file-data file) #f)))])
+	    (data-port-set! (file-data file) input-port)
+            input-port))))
+
+@ Test Cases for Input Port.
+
+@(io-test.ss@>=
+(test-begin "test-make-virtual-input-port")
+(define file1 (make-file "file1.txt" 4 "data"))
+(make-virtual-textual-input-port file1)
+
+(test-equal "is data a port?" #t (port? (file-data file1)))
+(test-equal "is file set as open?" #t (file-open file1))
+(test-equal "can read from the file" #\d (read-char (file-data file1)))
+(test-equal "can use read procedure" "data" (read (file-data file1)))
+
+(close-port (file-data file1))
+(test-equal "port replaced by the string" "data" (file-data file1))
+(test-equal "is file set as open?" #f (file-open file1))
+
+(test-end "test-make-virtual-input-port")
+
+@ The virtual input port reader maintains a current pointer into
+the file-contents string and moves through it, maintaining the 
+current port position (denoted port-pos).
+
+\medskip
+
+The reader fills the string starting at the start value that is passed
+and filling in at most n characters (less if the file isn't that long).
+The characters used are the ones from the string of the file. The
+count is a numerical value representing the number of characters that
+are pulled from the file-data string.
+
+@c (string start n filecontents portpos)
+@<Read from port@>=
+(let ([end (+ start n)]
+      [file-length (string-length filecontents)])
+  (let loop ([i start]
+             [count 0]
+             [port-i portpos])
+    (cond
+      [(>= port-i file-length) (set! portpos port-i) count]
+      [(>= i end) (set! portpos port-i) count]
+      [else
+        (begin
+           (string-set! string i (string-ref filecontents port-i))
+           (loop (fx1+ i) (fx1+ count) (fx1+ port-i)))])))
+
+            
+@ Above, we created an input port to read data. Similarly, we need a 
+custom port to output data. This acts much the same way as the input
+port we created earlier, such is it receives a node that must be of
+type file, and the file must not already be open to create the port.
+
+\medskip
+There areonly two places where the two differ. One is that the output
+port uses a port writer instead of a reader, and the other is that in
+an output port, there is no need to keep the position inside the port.
+\medskip \noindent
+
+@p
+(define make-virtual-textual-output-port
+   (lambda (node)
+      (assert (file? node))
+      (let ([file node]
+            [filename (node-name node)]
+	    [data (file-data node)])
+       (when (port? (data-port data))
+         (error 'filename "The file is already open"))
+       (assert (string? (data-string data)))
+       (let ([output-port 
+                (make-custom-textual-output-port filename
+                   (lambda (string start n)
+                      @<Write port@>)
+                   #f
+                   #f
+                   (lambda () (data-port-set! (file-data file) #f)))])
+       (data-port-set! data output-port)
+       output-port))))
+
+@ Port Writer.
+The |port-writer| does exactly what the name implies; writes to an output
+port. When this action is performed, the |port-writer| will check to see
+if the string being added to the file will push the space usage above
+the maximum size. If it does, the port writer will break and return
+with an error. 
+\medskip
+After the space check, the port-writer will append s (which is the string
+you are writing to the file) to the end of the data that the file currently
+has, it will change the size of the file to the length of the new string,
+and will return the length of the string being added to the file.
+
+(flush-output-string <port>) will save it to the "disk". We can perform
+this check when before we search for the space requirements.
+
+@c (string start n data)
+@<Write port@>=
+(let ([too-big? 
+	(>= (+ (- n start) (current-space-used)) 
+	    (filesystem-maxsize (virtual-filesystem)))])
+  (when too-big?
+    (error 'too-big "You do not have enough space to write this much"))
+  (let ([s (substring string start (+ start n))])
+    (begin
+      (data-string-set! data (string-append (data-string data) s))
+      (data-size-set! data (string-length s))
+      (string-length s))))
+
+
+@ Test Cases for Output Port.
+
+@(io-test.ss@>=
+(test-begin "test-make-virtual-output-port")
+  (define file1 (make-file "file1.txt" 4 "data"))
+  (make-virtual-textual-output-port file1)
+
+  (test-equal "is data a port?" #t (port? (file-data file1)))
+  (test-equal "is file set as open?" #t (file-open file1))
+
+  (write "this is a new string" (file-data file1))
+  (close-port (file-data file1))
+
+  (test-equal "port replaced by the new string" "this is a new string" (file-data file1))
+  (test-equal "is file set as open?" #f (file-open file1))
+
+(test-end "test-make-virtual-output-port")
+
+(test-begin "test-port-writer")
+
+  (fs-contents! (virtual-filesystem)                                 
+      (cons (make-file "file" 0 "")
+	    (cons (make-file "file1" 499 "data")(fs-contents (virtual-filesystem)))))
+  (define file (car (fs-contents (virtual-filesystem))))
+  (make-virtual-textual-output-port file)
+
+  (put-string (file-data file) "hello")
+
+(test-end "test-port-writer")
+
+@ All Open Ports.
+\medskip
+current path should build the path as it goes down.
+
+@p
+(define all-open-ports1
+  (lambda ()
+       (let loop ([filelist (fs-contents (virtual-filesystem))]
+	          [current-path "/"])
+         (cond
+	   [(null? filelist) '()]
+	   [(file? (car filelist))
+	     (if (port? (data-port (file-data (car filelist))))
+		   (cons (cons 
+		   	   (string-append current-path (node-name (car filelist)))
+			   (cons (data-port (file-data (car filelist))) '()))
+		         (loop 
+		           (cdr filelist) 
+		           current-path))
+	         (loop (cdr filelist) current-path))]
+	   [else
+             (begin
+	     (loop (directory-nodes (car filelist)) 
+		   (string-append 
+		     (string-append 
+		       current-path 
+                      (node-name (car filelist))) "/"))
+             (loop (cdr filelist)
+		   current-path))]))))
+
+(define look-for-ports
+  (lambda (ls current-path)
+    (cond
+      [(null? ls) '()]
+      [(file? (car ls))
+	(if (port? (data-port (file-data (car ls))))
+	  (cons (cons 
+		   (string-append current-path (node-name (car ls)))
+		   (cons (data-port (file-data (car ls))) '()))
+		 (look-for-ports (cdr ls) current-path))
+	  (look-for-ports (cdr ls) current-path))]
+      [else
+	(look-for-ports (cdr ls) current-path)])))
+
+(define look-inside-directories
+  (lambda (ls current-path)
+    (cond
+      [(null? ls) '()]
+      [(directory? (car ls))
+	(append 
+	  (look-for-ports 
+	    (directory-nodes (car ls)) 
+	    (string-append 
+	      current-path 
+	      (string-append (node-name (car ls)) "/")))
+	  (look-inside-directories 
+	    (directory-nodes (car ls))
+	    (string-append 
+	      current-path 
+	      (string-append (node-name (car ls)) "/")))
+	  (look-inside-directories (cdr ls) current-path))]
+      [else
+	(look-inside-directories (cdr ls) current-path)])))
+
+(define all-open-ports
+  (lambda ()
+    (let* ([filelist (fs-contents (virtual-filesystem))]
+	  [current-path "/"]
+	  [portls (look-for-ports filelist current-path)])
+      (append (look-inside-directories filelist current-path) portls))))
+      
+
+
+
+
+	      
+
+@* Convenience Procedures.
+Defined below are a series of procedures that will help in maintaining,
+manipulating, and accessing your virtual filesystem.
+
+@ |touch| is a procedure that takes a path and a name and will create
+a new empty file at that location in your filesystem, if that location
+exists. If it doesn't exist, it will return an error message that says
+so.
+
+@p
+(define new-file
+  (lambda (string)
+    (make-file string (make-data ""))))
+
+(define touch
+  (lambda (path name)
+     (if (equal? path "/")
+        (fs-contents! (virtual-filesystem) 
+           (cons (new-file name) (fs-contents (virtual-filesystem))))     
+        (let loop ([current-list (fs-contents (virtual-filesystem))]
+                   [temp-path (path-rest path)])
+           (let ([dir-node (search-filelist-dir
+                             current-list (path-first temp-path))])
+              (cond
+                 [(equal? "" (path-first (path-rest temp-path)))
+                  (if (equal? #f dir-node)
+                      (error 'mkdir "Directory does not exist")
+                      (directory-nodes-set! dir-node 
+                         (cons (new-file name) (directory-nodes dir-node))))] 
+                 [else
+                    (if (equal? #f dir-node)
+                        (error 'mkdir "Directory does not exist")
+                        (loop (directory-nodes dir-node) 
+                           (path-rest temp-path)))]))))))
+
+@ |mkdir| is a procedure that will create an empty directory at the path
+specified, unless that path doesn't exist. If the path doesn't exist,
+the code will break and throw an error message that tells you that
+the directory you are looking for doesn't exist. This procedure
+works much like the |touch| procedure.
+
+@p
+(define new-dir
+  (lambda (string)
+    (make-directory string '())))
+
+(define mkdir
+  (lambda (path name)
+     (if (equal? path "/")
+        (fs-contents! (virtual-filesystem) 
+           (cons (new-dir name) (fs-contents (virtual-filesystem))))  
+        (let loop ([current-list (fs-contents (virtual-filesystem))]
+                   [temp-path (path-rest path)])
+           (let ([dir-node (search-filelist-dir 
+                             current-list (path-first temp-path))])
+              (cond
+                 [(equal? "" (path-first (path-rest temp-path)))
+                  (if (equal? #f dir-node)
+                      (error 'mkdir "Directory does not exist")
+                      (directory-nodes-set! dir-node 
+                         (cons (new-dir name) (directory-nodes dir-node))))] 
+                 [else
+                    (if (equal? #f dir-node)
+                        (error 'mkdir "Directory does not exist")
+                        (loop (directory-nodes dir-node) 
+                           (path-rest temp-path)))]))))))
+
+@ |close-port| is a procedure that takes a node and closes it's
+port if it currently has one open. We have to rewrite this
+procedure because close-port works with a regular file and port,
+but not our unique virtual files and ports. Inside our file,
+we have a data field, and inside that data field, we have a port
+field. Our new close-port function will access that port field
+and close it.
+
+@p
+(define close-port-new
+  (lambda (node)
+    (assert (file? node))
+    (assert (file-open node))
+    (close-port (data-port (file-data node)))))
+
+@ |port| is a procedure that takes a path and returns the port 
+if it contains one, and false otherwise.
+
+@p
+(define port
+  (lambda (path)
+    (data-port (file-data (path-lookup path)))))
+
+@ |path-lookup| takes a path and returns a node if it exists, and 
+returns \#f if it doesn't. The procedure runs through the 
+let-loop. temp-path holds all the nodes that have not been searched
+for. If temp-path is empty, we can deduce that we have reached the
+end of our search for a file, and it will return either a node or \#f.
+
+\medskip\noindent
+However, if we have not reached the end of our path, we still have
+the possibilities of searching for the next directory in our path,
+or returning \#f. If the node searched for is returned as a node,
+we also have to check if the node is a file. If it is a file, then
+we cannot go further into the filesystem to complete the path. If it 
+isn't a file, then it must be a directory and we can continue our 
+search.
+
+@p
+(define path-lookup
+   (lambda (path)
+      (let loop ([temp-path (path-rest path)]
+                 [filelist (fs-contents (virtual-filesystem))])
+         (let ([first-node (path-first temp-path)])
+            (let ([node (search-filelist-dir filelist first-node)])
+               (cond
+                  [(equal? (path-first temp-path) "")
+		    (search-filelist-file filelist temp-path)]
+                  [else
+                     (if (node? node)
+                         (if (file? node)
+                             #f
+                             (loop (path-rest temp-path)
+                                   (directory-nodes node)))
+                          #f)]))))))
+
+@ |search-filelist| is a simple list recursion procedure that will
+find and return a node if one exists, and false if the node doesn't
+exist. We have two separate |search-filelists|. One will search for
+a file, and one will search for a directory. We need the distinction
+in the case that there is a file and a directory of the same name. If
+there were only one |search-filelist| procedure, it might return the
+file when you want the directory, or vice versa.
+
+@p
+(define search-filelist-file
+  (lambda (filelist name)
+    (cond
+      [(null? filelist) #f]
+      [(and (equal? name (node-name (car filelist))) 
+            (file? (car filelist)))
+       (car filelist)]
+      [else
+	(search-filelist-file (cdr filelist) name)])))
+
+(define search-filelist-dir
+  (lambda (filelist name)
+    (cond
+      [(null? filelist) #f]
+      [(and (equal? name (node-name (car filelist)))
+            (directory? (car filelist)))
+       (car filelist)]
+      [else
+	(search-filelist-dir (cdr filelist) name)])))
+                                   
+@ Test Cases for |path-lookup|.
+(test-begin "path-lookup")
+(fs-contents! (virtual-filesystem)
+	      (cons (make-directory "dir" 
+		      (cons (make-file "file1" 4 "data")
+			    '()))
+		    (fs-contents (virtual-filesystem))))
+
+(test-equal? "can find a directory node" 
+  (car (fs-contents (virtual-filesystem)))
+  (path-lookup "/dir"))
+
+(test-end "path-lookup")
+
+@ Read File Contents.
+This is a convenience procedure for the grader of the system
+to easily go into a file and read the string inside, instead
+of having to open an input port, or travel there manually.
+
+@p
+(define read-direct
+  (lambda (path)
+    (data-string (file-data (path-lookup path)))))
+
+@* Convenience I/O.
+
+@p
+(define open-input-file
+   (lambda (path . options)
+      (make-virtual-textual-input-port (path-lookup path))))
+
+(define open-output-file
+   (lambda (path . options)
+      (let ([node (path-lookup path)])
+	(begin
+	  (when (or (null? options) (not (is-option? (car options))))
+	    (set! options (cons 'append '())))
+	  (when (equal? 'replace (car options))
+	      (data-string-set! (file-data node) ""))
+	  (make-virtual-textual-output-port node)))))
+
+(define call-with-input-file
+  (lambda (path proc)
+     (let ([port (open-input-file path)])
+        (let-values ([v* (proc port)])
+	  (close-port port)
+	  (apply values v*)))))
+
+(define call-with-output-file
+  (lambda (path proc)
+      (let ([port (open-output-file path)])
+	(let-values ([v* (proc port)])
+	  (close-port port)
+	  (apply values v*)))))
+
+
+(define with-input-from-file
+  (lambda (path thunk)
+      (dynamic-wind
+	(lambda () (open-input-file path))
+	(lambda () thunk)
+	(lambda () (close-port path)))))
+
+(define with-output-to-file
+  (lambda (path thunk)
+      (dynamic-wind
+	(lambda () (open-output-file path))
+	(lambda () thunk)
+	(lambda () (close-port path)))))
+
+(define file-exists?
+  (lambda (path)
+    (if (path-lookup path)
+	#t
+	#f)))
+
+@ Test Cases for Convenience IO Library.
+(test-begin "open-input-file/open-output-file")
+(fs-contents! (virtual-filesystem)
+	      (cons (make-directory "dir" 
+		      (cons (make-file "file1" 4 "data")
+			    '()))
+		    (fs-contents (virtual-filesystem))))
+
+(open-input-file "/dir/file1")
+
+(test-equal? "does file1 contain a port?" \#t 
+	     (port? (file-data 
+		      (car (directory-nodes 
+			(car (fs-contents (virtual-filesystem))))))))
+
+(test-end "open-input-file/open-output-file")
+
+@* File Options.
+
+
+@p
+(define (is-option? sym)
+  (and (memq sym file-opts) #t))
+
+(define file-opts
+  (list 'replace 'append))
+
+
+@* Index.  
