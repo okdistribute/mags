@@ -1,0 +1,339 @@
+MAGS (McKelvey Auto Grading System) Version 2.0
+Karissa R. McKelvey <krmckelv@indiana.edu>
+Aaron W. Hso <arcfide@sacrideo.us>
+Josh D. Cox <joshcox@indiana.edu>
+
+Overview:
+
+MAGS (short for McKelvey Auto Grading System) is a system that takes
+scheme submissions and performs a range of specified tests on the code.
+In essence, MAGS is an auto-grader that passes or fails a submission
+based on a series of comparative evaluations where an expected final
+answer is compared to an evaluation of a procedure run with certain
+values (actual answer).
+
+MAGS implements an extended SRFI :64 style vocabulary to perform tests.
+
+You are advised to read and have a working understanding of SRFI :64
+before you begin to write test suites for MAGS.
+
+Information on SRFI :64 can be found here:
+
+http://srfi.schemers.org/srfi-64/srfi-64.html
+
+#####Chapter 1#####
+
+
+---Part 1---
+I think it is important to start off the beginning by defining
+some terms that are going to be used frequently throughout the 
+documentation. 
+
+assignment: A set of problems that needs to be answered by a student
+  and submitted to be graded by the autograder.
+test-group: A function provided by SRFI :64, it simply wraps a problem
+  set and gives it a name.
+Problem set: A set of test cases contained within a single test case. 
+
+We are going to delve directly into making our first assignment. The
+best way to learn MAGS is to get your hands dirty. 
+
+Our hypothetical Assignment 1 is going to have one problem, a procedure
+named length. length takes a list and returns the length of the list.
+length should be implemented as a recursive procedure.
+
+length:
+
+(define (length ls)
+	(if (null? ls)
+	    0
+	    (add1 (length (cdr ls)))))
+
+As we can see, the above solution is a correct implementation of length.
+If we run this is the REPL, we get results:
+
+>(length '(a b c))
+3
+
+So what we are going to is create our own test-suite for Assignment 1, which 
+has one problem inside of it. For this, I'll start by introducing some of the
+more primitive types of text-cases you will use when writing test-suites for
+assignments. 
+
+(test-assert [test-name] expression)
+  test-assert evaluates the expression and passes if it is true; if the results
+    is false, a failure is reported. 
+(test-equal [test-name] expected expression)
+  test-equal evaluates the expression and passes if the expected is equal to the
+    actual resulting from evaluating expression. test-equal is an extended form of 
+    test-assert:
+    
+    (test-assert [test-name] (equal? expected expression))
+(test-approximate [test-name] expected test-expr error)
+  test-approximate is used for testing the approximate equality of inexact real
+    numbers. If the number is within [error] of [expected], the test will pass.
+    Otherwise, it will report a failure.
+    
+So now that we know some basic test-cases, we can write some test-cases for 
+length. Since length has fairly intuitive answers, we can just go ahead and 
+cram out some test cases. Since we can just assume that the input for length
+will always be in list form, we do not need to make any special cases in the 
+event that somebody passes a non-list argument. 
+
+We should get a set of test-cases as such:
+
+<!---- test-case code ----!>
+(test-equal "'(1 2 3)" 3 (length '(1 2 3)))
+(test-equal "empty list" 0 (length '()))
+(test-equal "long list" 1 (length '(a)))
+<!---- end test-case code ----!>
+
+The next thing that we do is add these test-cases to a test-group in order to give
+them an identifier. As of now, the identifier isn't meaningful as we only have one
+problem, but as the assignments get longer and more complex it will become necessary
+to name them differently so that we can tell which problems failed or passed. For
+continuity's sake, we will begin by using a proper name for the test-group.
+
+Test-groups take the following form, where [test-group-name] is a string representing
+an appropriate name for the test-group and any number of <test-case> expressions.
+
+(test-group [test-group-name]
+  <test-case 1>
+  <test-case 2>
+  <test-case 3>
+  ...)
+
+We can effectively create our test-group by wrapping our previous test-cases with
+the code for test-group.
+
+<!---- test-group code ----!>
+(test-group "length-test"
+  (test-equal "'(1 2 3)" 3 (length '(1 2 3)))
+  (test-equal "empty list" 0 (length '()))
+  (test-equal "long list" 1 (length '(a))))
+<!---- end test-group code ----!>
+
+We now have our test-cases ready to be ran against the student code, however there
+is one more thing we need to do to finish setting up the sandbox for MAGS. We need
+to pull the user's code from their submission file to make sure that the sandbox 
+will know how the user implemented a certain procedure. We do this by using the
+define-from-submission procedure.
+
+(define-from-submission
+  <proc1>
+  <proc2>
+  <proc3>
+  ...)
+  
+Ordering doesn't matter in the define-from-submission procedure. 
+
+The code for our current assignment:
+
+<!---- define-from-submission ----!>
+(define-from-submission
+  length)
+<!----- end define-from-submission ----!>
+
+We only have one procedure that we are grading in Assignment 1, so we need only
+pull one procedure from a student's submission.
+
+After we have finished these two parts (creating the test-group for length and pulling
+the user's definition of length), we can add them together to create our a1.ss 
+(which is simply a naming convention for assignment 1. Feel free to name your assignment
+file whatever you want, just keep in mind that intuitive names are better for 
+organizational purposes).
+
+As you can see below, I specifically put the define-from-submission procedure
+first. This is because the autograder needs to know what the student's defined
+procedures are before it can run tests on it.
+
+<!---- a1.ss ----!>
+(define-from-submission
+  length)
+  
+(test-group "length-test"
+  (test-equal "'(1 2 3)" 3 (length '(1 2 3)))
+  (test-equal "empty list" 0 (length '()))
+  (test-equal "long list" 1 (length '(a)))) 
+<!----end a1.ss----!>
+
+---Part 2---
+
+Let's expand our working knowledge to creating assignments with multiple
+problems. This works the same way as above, but it is important to note
+that there a couple ways of doing this. In Assignment 1, we included
+everything in one file: problem sets, solutions, etc. This is unnecessary
+and quickly becomes untidy when we create large assignments. Instead, we are
+going to break up the assignment into five different files: one for the 
+main assignment structure and four others for each specific problem (3a and 3b
+get unique files for their problem sets).
+
+This structure employs a better organizational approach to the system, because
+it will enable the grader (you!) to keep a library of problems which you can just
+copy/paste into your assignment folder and include in your assignment.ss file. It 
+will enable you to re-use problems without having to copy code or completely rewrite.
+
+So let's begin our next example. Assignment 2 is going to have three problems, one 
+of which is a two-part problem. 
+
+1. remove - takes a list and an item, removes the first occurence
+	of the item in the list, and returns the list. If the item
+	is not in the list, return #f.
+>(remove '(a b a) 'a)
+'(b a)
+>(remove '(a b a) 'c)
+#f
+
+2. append - takes two lists, ls1 and ls2, and appends them into one list.
+>(append '(a b c) '(d e f))
+'(a b c d e f)
+
+3. a) sum-numbers - takes a list and sums all the numbers in the top level
+	of the list. sum-numbers should pass over an element if it is 
+	not a number.
+	
+	>(sum-numbers '((1 2) a b c 3))
+	3
+
+   b) sum-numbers-deep - takes a list and sums all the numbers in any
+	level of the list. 
+	
+	>(sum-numbers-deep '((1 2) a b c 3))
+	6
+
+
+The first thing we're going to do is create our files for the assignment, and
+then afterwards we will fill them with our problem sets.
+
+Create:
+  a2.ss               ---> Assignment file
+  remove.ss           ---> Problem set for remove (1)
+  append.ss           ---> Problem set for append (2)
+  sum-numbers.ss      ---> Problem set for sum-numbers (3a)
+  sum-numbers-deep.ss ---> Problem set for sum-numbers-deep (3b)
+  
+The next thing to do is to create problem sets for remove, append, sum-numbers,
+and sum-numbers-deep. We will put these problem sets in their respective files.
+
+Let's begin by writing a test-group for remove, which will be located in remove.ss.
+You want your test-cases to encompass the entire domain of what the procedure can
+handle. In this case, there are a couple different situations the procedure remove
+may encounter.
+  
+  1. The list is empty.
+  2. The item the student wants to remove is in the list once.
+  3. The item the student wants to remove is not in the list.
+  4. The item the student wants to remove is in the list more than one.
+
+We want to make sure that for each of these situations, we have a test-case or
+two that will test them. A good way to think about writing your test cases
+is that you want to break the student's code. Do everything in your power
+to make the student's code fail (that's in the domain of the problem, of course). 
+Only after you've exhausted all possibilities can you be sure that the student's 
+code runs as expected for all values.
+
+Below is the contents of remove.ss. As you can see, I addressed all the situations
+above and even added a new test to account for whether the item to remove is at the
+front of the list or not (reg test 1 and reg test 2).
+
+<!--- remove.ss ----!>
+(test-group "remove-test"
+  (test-equal "empty list" #f (remove '() 'a))
+  (test-equal "reg test 1" '() (remove '(a) 'a))
+  (test-equal "reg test 2" '(1) (remove '(1 2) 2))
+  (test-equal "multiple occurences" '(1 2 3 4 5) (remove '(1 2 3 4 5 5) 5))
+  (test-equal "not there" #f (remove '(1 2 3 4 5) 'a)))
+<!--- end remove.ss ---!>
+
+From here, you can create simple problem sets for append, sum-numbers, and 
+sum-numbers-deep. Don't forget that you should be writing solutions for these
+problems as you go along. You should be able to test your solutions with the test-cases
+that you write. This ensure that you know how you want a specific problem defined and
+will allow you to test your test-cases. 
+
+Now that you have your problem files created and filled with test-cases, we're going
+to look at writing our a2.ss file, which will pull the student defined procedures from
+the submission and run our test-cases.
+
+Below is the code for pulling the student's definitions from their submission. Same old
+story as before.
+
+<!---- A2 Student Definitions ----!>
+(define-from-submission
+  remove
+  append
+  sum-numbers
+  sum-numbers-deep)
+<!---- end A2 Student Definitions ----!>
+
+Let's now look to pulling our problem sets in our separate files to our assignment
+file. We can do this using a nifty procedure called include, which is used to include
+the contents of a separate file into the current file that is being run. To do this,
+create a test-group and name it according to whatever assignment you are on (because
+in this test group, we are including multiple test groups that contain test cases). 
+And from here we can just include our separate files. Be sure to take note of
+problems 3a and 3b.
+
+<!---- A2 Test Group ----!>
+(test-group "Assignment 2"
+  (include "remove.ss")
+  (include "append.ss")
+  (test-group "three"
+    (include "sum-numbers.ss")
+    (include "sum-numbers-deep.ss")))
+<!---- END A2 Test Group ----!>
+
+The test-group, Assignment 2, is defined as expected with each problem included in
+order and problem three put into it's own test group to designated a single
+problem with multiple parts. This is pretty easy to understand, but MAGS provides
+an easier alternative to this, called test-suites. 
+
+The procedure test-suite takes any number of string arguments representing filenames
+and will include the files automatically. It's also important to note that denoting
+a multi-part problem is different than above. Let's take a look at the test group 
+for Assignment 2 using a test suite.
+
+<!---- A2 Test Group ----!>
+(test-group "Assignment 2"
+  (test-suite
+    "remove.ss"
+    "append.ss"
+    ("sum-numbers.ss"
+     "sum-numbers-deep.ss")))
+<!---- END A2 Test Group ----!>
+
+As stated above, note the different syntax for multiple part problems. Instead of 
+adding them into their own test-group, we denote them by wrapping them in parentheses.
+Additionally, we don't have to use the include procedure because test-suite does it
+for us. This method is simpler and cleaner, so from here on out, we will use 
+test-suites to pull our problem sets from outside problems. 
+
+Putting all of this together from here is easy. Currently, we have four files that
+contain problem sets for each of the problems in Assignment 2, we have an empty file
+for Assignment 2 (a2.ss), we have code written that creates the Assignment 2 test
+group, and we have code written that will pull the student's definitions from the 
+submission. All that we have left to do is put our code into a2.ss, right? Correct.
+
+Below is a2.ss:
+
+<!---- a2.ss ----!>
+
+(define-from-submission
+  remove
+  append
+  sum-numbers
+  sum-numbers-deep)
+  
+(test-group "Assignment 2"
+  (test-suite
+    "remove.ss"
+    "append.ss"
+    ("sum-numbers.ss"
+     "sum-numbers-deep.ss")))
+     
+<!---- END a2.ss ----!>
+
+As we did in the previous example, we define-from-submission first in order
+to use the student defined procedures in the test cases.
+
+AND SO ENDS CHAPTER 1!!!
