@@ -1,0 +1,169 @@
+\def\title{SCHEME AUTOGRADER (VERSION 3.0)}
+\def\topofcontents{\null\vfill
+  \centerline{\titlefont Scheme Autograder}
+  \vskip 15pt
+  \centerline{(Version 3.0)}
+  \vfill}
+\def\botofcontents{\vfill
+\noindent
+Copyright $\copyright$ 2012 
+Aaron W. Hsu $\.{arcfide@@sacrideo.us}$,
+Karissa R. McKelvey $\.{krmckelv@@indiana.edu}$,
+Josh Cox $\.{joshcox@indiana.edu|$
+\smallskip\noindent
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+\smallskip\noindent
+THE SOFTWARE IS PROVIDED ``AS IS'' AND THE AUTHOR DISCLAIMS ALL
+WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+}
+
+@* Introduction.
+@* Command-line Program.
+@* Implementation.
+
+@* Time limiting evaluation.
+This section defines |with-time-limit|, a procedure that evaluates thunk,
+using a low-level timer to limit the execution time. It is meant to be safe for
+use with all standard (non-FFI) Scheme forms, including engines. It uses Chez
+Scheme's low-level signal handling interface, so code using this form should
+not rely on or use this interface for other purposes. The syntax is as follows:
+
+\medskip\verbatim
+(with-time-limit seconds handler-thunk proc-thunk)
+!endverbatim
+
+\noindent The |proc-thunk| is evaluated with a time limit, and a signal handler
+is registered before executing |proc-thunk| that will call the |handler-thunk|
+if the execution time exceeds the time limit.
+
+@c () => (with-time-limit)
+@<Time Limiting Procedure@>=
+(define signal/alarm 14) ; Magic constant 14 from signal.h
+(define $alarm (foreign-procedure "alarm" (unsigned-int) unsigned-int))
+(define (with-time-limit seconds handler-thunk proc-thunk)
+  (register-signal-handler signal/alarm (lambda (x) (handler-thunk)))
+  ($alarm seconds)
+  (proc-thunk))
+
+@* Creating Sandboxes.
+@* Creating new Equality testers.
+As discussed earlier, there are times when you may want to test for an ADT
+which you have created in another library.
+
+\medskip
+This library's extention of |srfi :64| allows the use of
+|test-pred| which is used to define new equality test forms.
+It can be used like so:
+
+\medskip
+\verbatim
+> (test-pred pred? name expected actual)
+!endverbatim
+
+\medskip
+\noindent
+The procedure |(define-equality-test)| takes two arguments:
+|test-name|, the name of the test, and |pred|, the predicate it will
+use. It defines a test which can be used like any other |(srfi :64)|
+test, but using the given |predicate| instead.  Here is an example of
+its use with |treequal?|:
+
+\medskip \verbatim 
+> (define-equality-test test-treequal treequal?)
+> (test-treequal "These trees are treequal"
+    '(tree 0 (leaf 3) (leaf 4)) 
+    '(tree 0) (leaf 3) (leaf 4))
+PASS
+!endverbatim
+
+\medskip
+\noindent
+Here follows is the definition of |define-equality-test|. It is
+implemented as a macro that can follows the same form as the
+|(srfi :64)| tests.  We are simply redefining a given |test-name|, by
+defining a macro under that name.  This uses the chunk 'Defining a new
+test', which is defined in the following section.
+
+\medskip
+This is where we execute a |pretty-print| as the name of the test,
+when none is given. The exports |test-equal|, |-eq|, and others are
+redefined later using this macro so that all of the forms are
+implemented in standard.
+         
+@c () => (define-equality-test)
+@<Define Equality Tester form@>=
+(define-syntax define-equality-test
+  (syntax-rules ()
+    [(_ test-name pred?)
+     (define-syntax test-name
+       (syntax-rules ()
+         [(_ name expected test-expr time-limit)
+          @<Defining a new test@>] ; name expected test-expr time-limit pred?
+         [(_ name expected test-expr)
+          @<Defining a new test@>] ; name expected test-expr
+(current-time-limit) pred?
+         [(_ expected test-expr)
+          @<Defining a new test@>]))])) ; (with-output-to-string (lambda ()
+(pretty-print 'test-expr))) expected test-expr (current-time-limit) pred?
+
+@ This section specifies some details about the implementation of
+the protection from infinite loops. Tests should continue to the next
+test even if they produce infinite loops, and |(srfi :64)| does not
+have support for this, so it is done here. We guard against this
+within a scheme engine that times out after a certain number of ticks.
+The engine will signal the error and fail the test.
+
+\medskip
+This chunk takes a name, the expected value, the |test-expr|
+to be evaluated, and either a |time-limit|. If the |test-expr| times
+out, we raise a |&timeout| exception. Else, we use an extension of the
+|(srfi :64)| tests, |test-pred|, with the given predicate.
+
+\medskip
+Note: the |test-expr| is evaluated within the engine before it is sent
+to the |test-pred| procedure. This means that the |pred?| only has
+access to the {{\it value}}, not the actual expression.  The
+|test-expr| can be retrieved from the name of the test in some cases,
+however. This might be improved.
+
+@c (name expected test-expr time-limit pred?)
+@<Defining a new test@>=
+(define-syntax test-with-engine
+  (syntax-rules ()
+    [(_ expr)
+     ((make-engine (lambda () expr))
+      time-limit 
+      (lambda (t v) v) 
+      (lambda (c) (raise (timeout c))))]))
+(if name
+    (test-pred pred? name expected (test-with-engine test-expr))
+    (test-pred pred? expected (test-with-engine test-expr)))
+
+@ Here are basic tests for the above: we define a new test called
+|foobar| which simply uses |eq?| to test equality.
+
+@c ()
+@<Test equality tester form@>=
+(test-begin "equality")
+(let ()
+  (define-equality-test foobar eq?)
+  (foobar "should fail, infinte loop" '() (let loop ([i 0]) (loop (add1 i))))
+  (foobar "should pass" 3 3)
+  (foobar "should fail" '(0 1 2 3 4) (iota 5)))
+(test-end "equality")
+
+@ Let's throw |(define-equality-test)| into the top level.
+
+@p
+@<Define Equality Tester form@>
+
+@* XML Runner.
+@* Index.
