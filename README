@@ -1,14 +1,15 @@
 README
-You need Chezweb and (srfi :64) to use this autograder. 
+Please look at the github wiki on the developer setup. 
+https://github.com/krmckelv/mags/wiki/Developer-Setup
 
 Framework:
-grade.w: mags grader
-runners.w: (srfi :64) test runners
-sandbox.w: sandbox framework
-io.w: sandbox i/o framework
+grade.web: main grading framework
+sandbox.web: sandbox framework
+runners.web: srfi 64 test runners
+io.web: sandbox i/o framework (INCOMPLETE)
 
-load.w: loads and imports all autograder files
-test.w: easy way to run tests
+load.ss: loads and imports all autograder files
+test.ss: easy way to run tests
 
 
 
