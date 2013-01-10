@@ -1,0 +1,60 @@
+Functionality
+###########################################
+
+Managing Students
+  Submissions
+    Separated by Assignment/Lab
+  Roster
+    Name
+    NetworkID
+    Picture
+Managing Instructors
+  Permissions?
+  Roster
+Managing Assignments
+Manage Groups
+Manage Problems
+
+#############################################
+Pages
+#############################################
+
+Home -> Description/List of Options and Places to Go
+Students -> Managing Students (selectable)
+  ->Can edit Roster Here
+    ->Adding/Removing a student
+  ->Selecting a student brings up a list of assignment and general info
+    ->Can edit information (stored in database)
+    ->Can look at specific assignments
+      ->Can look at specific submissions
+        ->will pull up a page to
+         -view grading reports
+         -view submitted code
+         -view validation reports for submission (tiro-side)
+Instructors -> Managing Instructors
+  ->Pulls up roster similar to student roster
+    ->Add/Remove an Instructor
+  ->Selecting an Instructor pulls up the information
+    ->Can edit information (username, pword, etc) if proper permissions
+      are met
+Assignments -> Managing Assignments
+  ->Add/Remove Assignment
+  ->List of Selectable Assignments
+    ->Edit specific assignment (which problems go in there...)
+    ->View what the created assignments (html format) look like
+Problems -> Manage database of problems
+  ->Add/Remove Problem
+  ->List of Selectable Problems
+    ->Edit Information of Specific Problem
+    - Problem Name
+    - Problem Description
+    - Problem Test Suite
+    - Problem Solution
+Groups -> Managing Groups
+  ->Add/Remove Groups
+  ->List of Semesters (maybe... We haven't consdered what happens if a
+                       group has the same name as a previous semester
+                       group)
+   ->List of selectable Groups in a specific semester
+     ->Shows a list of students associated with that group
+       ->can add/remove existing student to a group
