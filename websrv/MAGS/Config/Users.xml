@@ -1,17 +1,12 @@
 <Users>
    <User>
-      <ID>mkrom</ID>
-      <Pass>secret</Pass>
+      <ID>arcfide</ID>
+      <Pass>blah</Pass>
       <Groups>admin</Groups>
    </User>
    <User>
-      <ID>userid</ID>
-      <Pass>password</Pass>
-      <Groups>admin</Groups>
-   </User>
-   <User>
-      <ID>scott</ID>
-      <Pass>tiger</Pass>
-      <Groups>users</Groups>
+       <ID>joshcox</ID>
+       <Pass>blah</Pass>
+       <Groups>admin</Groups>
    </User>
 </Users>
