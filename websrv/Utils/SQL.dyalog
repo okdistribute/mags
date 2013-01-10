@@ -12,7 +12,7 @@
           :Else ⍝ found it
               ds←ind⊃ms.Datasources
               r←601 'SQAPL not available'
-              :If 0=⊃#.SQA.Init''
+              :If ∨/0 ¯1=⊃#.SQA.Init''
                   (dsn opts user pwd)←{6::'' ⋄ ⍎⍵}¨'ds.'∘,¨'DSN' 'DriverOptions' 'User' 'Password'
                   conx←{⊃('C'∘,¨⍕¨⍳1+⍴⍵)~⍵}⊃¨2 2⊃#.SQA.Tree'.'
                   :If 0=1⊃rc←#.SQA.Connect conx dsn pwd user('DriverOptions'(opts)) ⋄ r←0 conx
