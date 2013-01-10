@@ -1,6 +1,6 @@
 <Server>
     <Name>MAGS Autograding Server</Name>
-    <ClassName>MAGSServer</ClassName>
+    <ClassName>MildServer</ClassName>
     <Lang>en</Lang> <!-- use English for this site, see http://www.w3schools.com/TAGS/ref_language_codes.asp for others --> 
     <Address>http://localhost:8080</Address>
     <Port>8080</Port>
