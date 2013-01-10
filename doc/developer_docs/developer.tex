@@ -15,11 +15,11 @@
 \newcount\sectionno
 
 \def\chapter#1{\advance\chapterno by 1\sectionno = 0\vfill\break\null\vskip 1in
-	{\noindent\hfill\chapterfontbf Chapter \the\chapterno\par}\medskip
-	{\noindent\hfill\chapterfontrm #1\par}\medskip\hrule\bigskip}
+  {\noindent\hfill\chapterfontbf Chapter \the\chapterno\par}\medskip
+  {\noindent\hfill\chapterfontrm #1\par}\medskip\hrule\bigskip}
   
 \def\section#1{\advance\sectionno by 1
-	\bigskip\noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
+  \bigskip\noindent{\sectionfont \the\chapterno.\the\sectionno\quad #1}\medskip}
 
 \def\subsection#1{\medskip\noindent{\subsectionfont #1}.}
 
@@ -115,20 +115,20 @@ treated as serious bugs. The following is a short summary of each table's
 purpose; each heading in this section focuses on detailing one of these tables.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad #	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Entities}	& {\bf Relations}	& {\bf Mixed}\cr
-		\noalign{\hrule}		
-		Instructor	& Validates	& Submitter \cr
-		Groups	& Teaches	& Submission \cr
-		Assignment	& HasType	& \cr
-		Problem	& HasDeadline	& \cr
-			& BelongsTo	& \cr
-			& Contains	& \cr
-			& Collaborated	& \cr
-			& CommentsOn	& \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad #  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Entities}  & {\bf Relations}  & {\bf Mixed}\cr
+    \noalign{\hrule}    
+    Instructor  & Validates  & Submitter \cr
+    Groups  & Teaches  & Submission \cr
+    Assignment  & HasType  & \cr
+    Problem  & HasDeadline  & \cr
+      & BelongsTo  & \cr
+      & Contains  & \cr
+      & Collaborated  & \cr
+      & CommentsOn  & \cr
+  }
 }$$
 
 \subsection{Instructor Entity}
@@ -139,15 +139,15 @@ based on what groups they may ``teach.''
 Thus, not all instructors may grade all submissions.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		networkid	& Fixed String	& --- \cr
-		firstname	& Variable String	& --- \cr
-		lastname	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    networkid  & Fixed String  & --- \cr
+    firstname  & Variable String  & --- \cr
+    lastname  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent\flushleft
@@ -162,13 +162,13 @@ It serves as the divider by which submitters are grouped.
 Assignments are also assigned to specific groups.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		name	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    name  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent\flushleft
@@ -187,13 +187,13 @@ Assignments may be reused or used for particular groups
 Assignments can be categorized.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		name	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    name  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -209,16 +209,16 @@ Autograders are applied to individual problems.
 They are composed of a name, a description, a test suite, and a solution.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		name	& Variable String	& --- \cr
-		description	& Variable String	& --- \cr
-		testsuite	& Variable String	& --- \cr
-		solution	& Variable String & --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    name  & Variable String  & --- \cr
+    description  & Variable String  & --- \cr
+    testsuite  & Variable String  & --- \cr
+    solution  & Variable String & --- \cr
+  }
 }$$
 
 {\noindent
@@ -233,16 +233,16 @@ Currently, a submitter may be a member of only one group,
 but this may change in the future.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		networkid	& Fixed String	& --- \cr
-		firstname	& Variable String	& --- \cr
-		lastname	& Variable String	& --- \cr
-		member	& ---	& {\tt Group.name} \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    networkid  & Fixed String  & --- \cr
+    firstname  & Variable String  & --- \cr
+    lastname  & Variable String  & --- \cr
+    member  & ---  & {\tt Group.name} \cr
+  }
 }$$
 
 {\noindent
@@ -259,18 +259,18 @@ because submissions are intended to be graded immediately on submission
 and should have only a single report.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		owner	& ---	& {\tt Submitter.networkid} \cr
-		submittedfor	& ---	& {\tt Assignment.name} \cr
-		date	& Date	& --- \cr
-		isappeal	& Boolean	& --- \cr
-		code	& Variable String	& --- \cr
-		report	& XML	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    owner  & ---  & {\tt Submitter.networkid} \cr
+    submittedfor  & ---  & {\tt Assignment.name} \cr
+    date  & Date  & --- \cr
+    isappeal  & Boolean  & --- \cr
+    code  & Variable String  & --- \cr
+    report  & XML  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -282,13 +282,13 @@ Categories are simple organizers for assignments.
 They are largely informational.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		name	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    name  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -301,14 +301,14 @@ features of a submission, such as whether it was submitted on time.
 Assignments may have many such deadlines.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		type	& Variable String	& --- \cr
-		date	& Date	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    type  & Variable String  & --- \cr
+    date  & Date  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -322,14 +322,14 @@ A failed validator results in rejecting a submission.
 Unlike autograders, validators are associated with assignments.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		name	& Variable String	& --- \cr
-		command	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    name  & Variable String  & --- \cr
+    command  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -341,13 +341,13 @@ A comment is just some text.
 We have an entity for it because Guido has a concept of reusing comments.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		text	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    text  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -360,15 +360,15 @@ submissions for a particular assignment. It also prescribes any
 additional parameters for use when calling the validator.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		validator	& ---	& {\tt Validator.name} \cr
-		assignment	& ---	& {\tt Assignment.name} \cr
-		params	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    validator  & ---  & {\tt Validator.name} \cr
+    assignment  & ---  & {\tt Assignment.name} \cr
+    params  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -378,14 +378,14 @@ Natural Key: {\tt validator}, {\tt assignment}, {\tt params}\par}
 Binds or associates a member of Instructors as assigned to or grading a group.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		teacher	& ---	& {\tt Instructor.networkid} \cr
-		group	& ---	& {\tt Group.name} \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    teacher  & ---  & {\tt Instructor.networkid} \cr
+    group  & ---  & {\tt Group.name} \cr
+  }
 }$$
 
 {\noindent
@@ -396,14 +396,14 @@ Associates an assignment with a category.
 Assignments may belong to multiple categories.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		assignment	& ---	& {\tt Assignment.name} \cr
-		category	& ---	& {\tt Category.name} \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    assignment  & ---  & {\tt Assignment.name} \cr
+    category  & ---  & {\tt Category.name} \cr
+  }
 }$$
 
 {\noindent
@@ -414,15 +414,15 @@ Assigns or gives an assignment a deadline,
 where deadlines have types and dates.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		assignment	& ---	& {\tt Assignment.name} \cr
-		type	& ---	& {\tt Deadline.type} \cr
-		date	& ---	& {\tt Deadline.date} \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    assignment  & ---  & {\tt Assignment.name} \cr
+    type  & ---  & {\tt Deadline.type} \cr
+    date  & ---  & {\tt Deadline.date} \cr
+  }
 }$$
 
 {\noindent
@@ -433,14 +433,14 @@ Associates an assignment to a group.
 Assignments may belong to more than one group.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		assignment	& ---	& {\tt Assignment.name} \cr
-		group	& ---	& {\tt Group.name} \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    assignment  & ---  & {\tt Assignment.name} \cr
+    group  & ---  & {\tt Group.name} \cr
+  }
 }$$
 
 {\noindent
@@ -452,15 +452,15 @@ Assignments should not reuse a problem,
 but multiple assignments may use the same problem.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		assignment	& ---	& {\tt Assignment.name} \cr
-		problem	& ---	& {\tt Problem.name} \cr
-		number	& Variable String	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    assignment  & ---  & {\tt Assignment.name} \cr
+    problem  & ---  & {\tt Problem.name} \cr
+    number  & Variable String  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -473,16 +473,16 @@ While other collaborations may have occurred, only submitter
 collaborations are currently tracked.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		submitter	& ---	& {\tt Submission.owner} \cr
-		assignment	& ---	& {\tt Submission.submittedfor} \cr
-		submitdate	& ---	& {\tt Submission.date} \cr
-		collaborator	& ---	& {\tt Submitter.name} \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    submitter  & ---  & {\tt Submission.owner} \cr
+    assignment  & ---  & {\tt Submission.submittedfor} \cr
+    submitdate  & ---  & {\tt Submission.date} \cr
+    collaborator  & ---  & {\tt Submitter.name} \cr
+  }
 }$$
 
 {\noindent
@@ -495,19 +495,19 @@ A comment may be used in multiple places in an assignment.
 Additionally a comment is marked as relating to a specific problem.
 
 $$\vbox{
-	\offinterlineskip
-	\halign{
-		\strut \quad {\tt #}	& \vrule\quad #	& \vrule\quad # \cr
-		{\bf Field Name}	& {\bf Type}	& {\bf Foreign Key}\cr
-		\noalign{\hrule}		
-		comment	& ---	& {\tt Comment.text} \cr
-		submitter	& ---	& {\tt Submission.owner} \cr
-		assignment	& ---	& {\tt Submission.submittedfor} \cr
-		submitdate	& ---	& {\tt Submission.date} \cr
-		problem	& ---	& {\tt Problem.name} \cr
-		start	& Int	& --- \cr
-		end	& Int	& --- \cr
-	}
+  \offinterlineskip
+  \halign{
+    \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
+    {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
+    \noalign{\hrule}    
+    comment  & ---  & {\tt Comment.text} \cr
+    submitter  & ---  & {\tt Submission.owner} \cr
+    assignment  & ---  & {\tt Submission.submittedfor} \cr
+    submitdate  & ---  & {\tt Submission.date} \cr
+    problem  & ---  & {\tt Problem.name} \cr
+    start  & Int  & --- \cr
+    end  & Int  & --- \cr
+  }
 }$$
 
 {\noindent
@@ -531,6 +531,8 @@ Natural Key: {\tt comment}, {\tt submitter}, {\tt assignment},
 \chapter{Submission Validation}
 
 \chapter{Interfacing with Autograders or Writing Your Own}
+
+
 
 \chapter{Scheme Autograder}
 
