@@ -1,0 +1,23 @@
+body {
+  font-family: sans-serif;
+  padding: 0; margin: 0;
+}
+
+#assignments {
+  float: left;
+  margin: 0em 2em 0em 0em; margin-top: 0;
+  padding: 1em;
+  background-color: #f8f3d2;
+  list-style: none;
+}
+
+h1 {
+  background-color: #7d110c;
+  color: #f8f3d2;
+  padding: 1em 1em; margin: 0;
+}
+
+#info {
+  float: right;
+  margin: 0em 0em 0em 2em;
+}

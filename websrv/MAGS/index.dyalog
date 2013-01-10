@@ -1,7 +1,5 @@
 :Class index : MildPage
 
- ⎕IO←0
-
 :Include #.HTMLInput
 
 :Field Public casticket←''
@@ -14,10 +12,16 @@
  CASValidateURL,←'casurl=http://localhost:8080/&'
  CASValidateURL,←'casticket='
 
-∇Render req;res;usr;grp
+∇Render req;res;usr;grp;bod
  :Access Public
  →(⊃res usr grp←CASValidate req)/0
- req.Return'p'Enclose'Validated ',usr,' in group ',grp,'.'
+ bod←'h1'Enclose'MAGS: McKelvey Auto-Grading System'
+ bod,←'div id="info"'Enclose'Logged in as ',usr,'.'
+ bod,←'assignments'List⊂'Assignments go here'
+ bod,←'div id="content"'Enclose'Content will go here.'
+ req.Return bod
+ req.Title 'MAGS: McKelvey Auto-Grading System'
+ req.Style 'index.css'
 ∇
 
  CASValidate←{
@@ -25,7 +29,7 @@
      res←HTTPGet CASValidateURL,casticket
      ⎕THIS.casticket←''
      0≠⊃res:1 '' ''⊣⍵.Return'p'Enclose'An error occurred.'
-     dat←2⊃res
+     dat←3⊃res
      'yes'≡3↑dat:0 (¯1↓4↓dat) ''
      CASRedirect ⍵
  }
