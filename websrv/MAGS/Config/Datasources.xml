@@ -1,0 +1,6 @@
+<Datasources>
+  <Datasource>
+    <Name>MAGSDB</Name>
+    <DSN>MAGSDB</DSN>
+  </Datasource>
+</Datasources>

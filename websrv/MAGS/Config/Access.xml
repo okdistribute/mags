@@ -1,0 +1,10 @@
+<Access>
+   <Folder>
+      <Path>/Admin</Path>
+      <Groups>admin</Groups>
+   </Folder>
+   <Folder>
+      <Path>**</Path>
+      <Groups>**</Groups>
+   </Folder>
+</Access>
