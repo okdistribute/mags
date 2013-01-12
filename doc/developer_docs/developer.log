@@ -1,0 +1,29 @@
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdftex 2012.2.17)  11 JAN 2013 20:12
+entering extended mode
+ %&-line parsing enabled.
+**developer.tex
+(./developer.tex (/usr/share/texmf/tex/eplain/eplain.tex)
+\chapterno=\count49
+\sectionno=\count50
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+
+\hbox(0.0+0.0)x469.75499
+.\hbox(0.0+0.0)x0.0
+
+[0{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [1] [2] [3] [4] [5]
+[6] [7] [8] [9] [10] [11] [12] [13] [14] [15] [16] ) </u/czakian/.texlive2007/t
+exmf-var/fonts/pk/ljfour/public/sauter/cmb12.600pk> </u/czakian/.texlive2007/te
+xmf-var/fonts/pk/ljfour/public/sauter/cmb17.600pk> </u/czakian/.texlive2007/tex
+mf-var/fonts/pk/ljfour/public/sauter/cmb24.600pk></usr/share/texmf/fonts/type1/
+bluesky/cm/cmb10.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmbx10.pfb></usr/
+share/texmf/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/texmf/fonts/type1/blue
+sky/cm/cmr17.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmtt10.pfb></usr/shar
+e/texmf/fonts/type1/bluesky/cm/cmtt12.pfb>
+Output written on developer.pdf (17 pages, 113580 bytes).
+PDF statistics:
+ 179 PDF objects out of 1000 (max. 8388607)
+ 0 named destinations out of 1000 (max. 131072)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+
