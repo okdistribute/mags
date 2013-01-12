@@ -271,7 +271,7 @@ $$\vbox{
     submittedfor  & ---  & {\tt Assignment.name} \cr
     date  & Date  & --- \cr
     isappeal  & Boolean  & --- \cr
-    code  & Variable String  & --- \cr
+    code  & Variable Bytes  & --- \cr
     report  & XML  & --- \cr
   }
 }$$
@@ -558,8 +558,8 @@ instance of the auto-grader is called. In particular, each problem in an
 assignment will spawn one instance of the auto-grader. Each invocation is 
 expected to be referentially transparent, meaning that multiple runs of an 
 auto-grader with the same arguments should produce the same output. One should 
-not rely on hidden state to get reasonable results. The pattern fo arguments
-looks like this:
+not rely on hidden state to get reasonable results. The arguments look
+like this:
 
 \medskip\verbatim
 <grader> : test-suite solution submission [extra ...]
