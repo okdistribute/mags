@@ -4,7 +4,7 @@
 
 -- Dumped from database version 9.1.6
 -- Dumped by pg_dump version 9.1.6
--- Started on 2013-01-11 20:02:03 EST
+-- Started on 2013-01-12 13:46:12 EST
 
 SET statement_timeout = 0;
 SET client_encoding = 'UTF8';
@@ -13,23 +13,7 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
--- TOC entry 2593 (class 1262 OID 16424)
--- Name: MAGS; Type: DATABASE; Schema: -; Owner: -
---
-
-CREATE DATABASE "MAGS" WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8';
-
-
-\connect "MAGS"
-
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-
---
--- TOC entry 181 (class 3079 OID 12230)
+-- TOC entry 179 (class 3079 OID 12230)
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -37,8 +21,8 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2595 (class 0 OID 0)
--- Dependencies: 181
+-- TOC entry 2587 (class 0 OID 0)
+-- Dependencies: 179
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
 --
 
@@ -61,7 +45,7 @@ CREATE TABLE assignments (
 
 
 --
--- TOC entry 176 (class 1259 OID 16630)
+-- TOC entry 175 (class 1259 OID 16630)
 -- Dependencies: 5
 -- Name: belongsto; Type: TABLE; Schema: public; Owner: -
 --
@@ -84,14 +68,16 @@ CREATE TABLE categories (
 
 
 --
--- TOC entry 178 (class 1259 OID 16666)
+-- TOC entry 177 (class 1259 OID 16666)
 -- Dependencies: 5
 -- Name: collaborated; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE collaborated (
-    submission integer NOT NULL,
-    collaborator text NOT NULL
+    collaborator text NOT NULL,
+    owner text NOT NULL,
+    assignment text NOT NULL,
+    date timestamp without time zone NOT NULL
 );
 
 
@@ -107,22 +93,24 @@ CREATE TABLE comments (
 
 
 --
--- TOC entry 180 (class 1259 OID 16697)
+-- TOC entry 178 (class 1259 OID 16697)
 -- Dependencies: 5
 -- Name: commentson; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE commentson (
     comment text NOT NULL,
-    submission integer NOT NULL,
     problem text NOT NULL,
     com_start integer NOT NULL,
-    com_end integer NOT NULL
+    com_end integer NOT NULL,
+    owner text NOT NULL,
+    assignment text NOT NULL,
+    date timestamp without time zone NOT NULL
 );
 
 
 --
--- TOC entry 177 (class 1259 OID 16648)
+-- TOC entry 176 (class 1259 OID 16648)
 -- Dependencies: 5
 -- Name: contains; Type: TABLE; Schema: public; Owner: -
 --
@@ -142,32 +130,8 @@ CREATE TABLE contains (
 
 CREATE TABLE deadlines (
     type text NOT NULL,
-    date timestamp without time zone NOT NULL,
-    deadlineid integer NOT NULL
+    date timestamp without time zone NOT NULL
 );
-
-
---
--- TOC entry 175 (class 1259 OID 16610)
--- Dependencies: 168 5
--- Name: deadlines_deadlineid_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE deadlines_deadlineid_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- TOC entry 2596 (class 0 OID 0)
--- Dependencies: 175
--- Name: deadlines_deadlineid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE deadlines_deadlineid_seq OWNED BY deadlines.deadlineid;
 
 
 --
@@ -189,7 +153,8 @@ CREATE TABLE groups (
 
 CREATE TABLE hasdeadline (
     assignment text NOT NULL,
-    deadline integer NOT NULL
+    type text NOT NULL,
+    date timestamp without time zone NOT NULL
 );
 
 
@@ -220,23 +185,23 @@ CREATE TABLE instructors (
 
 --
 -- TOC entry 164 (class 1259 OID 16454)
--- Dependencies: 2525 5
+-- Dependencies: 2521 5
 -- Name: problems; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE problems (
     name text NOT NULL,
-    testsuite bytea[] NOT NULL,
-    solution bytea[] NOT NULL,
     description text DEFAULT 'No description given.'::text NOT NULL,
     grader text NOT NULL,
-    grader_params text NOT NULL
+    grader_params text NOT NULL,
+    testsuite text NOT NULL,
+    solution text NOT NULL
 );
 
 
 --
 -- TOC entry 166 (class 1259 OID 16476)
--- Dependencies: 2526 5
+-- Dependencies: 2522 5
 -- Name: submissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -246,32 +211,8 @@ CREATE TABLE submissions (
     date timestamp without time zone NOT NULL,
     isappeal boolean DEFAULT false NOT NULL,
     code bytea[] NOT NULL,
-    report xml,
-    submissionid integer NOT NULL
+    report xml
 );
-
-
---
--- TOC entry 179 (class 1259 OID 16674)
--- Dependencies: 5 166
--- Name: submissions_submissionid_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE submissions_submissionid_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- TOC entry 2597 (class 0 OID 0)
--- Dependencies: 179
--- Name: submissions_submissionid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE submissions_submissionid_seq OWNED BY submissions.submissionid;
 
 
 --
@@ -326,26 +267,8 @@ CREATE TABLE validators (
 
 
 --
--- TOC entry 2528 (class 2604 OID 16612)
--- Dependencies: 175 168
--- Name: deadlineid; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY deadlines ALTER COLUMN deadlineid SET DEFAULT nextval('deadlines_deadlineid_seq'::regclass);
-
-
---
--- TOC entry 2527 (class 2604 OID 16676)
--- Dependencies: 179 166
--- Name: submissionid; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY submissions ALTER COLUMN submissionid SET DEFAULT nextval('submissions_submissionid_seq'::regclass);
-
-
---
--- TOC entry 2534 (class 2606 OID 16450)
--- Dependencies: 163 163 2590
+-- TOC entry 2528 (class 2606 OID 16450)
+-- Dependencies: 163 163 2582
 -- Name: assignments_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -354,8 +277,8 @@ ALTER TABLE ONLY assignments
 
 
 --
--- TOC entry 2562 (class 2606 OID 16637)
--- Dependencies: 176 176 176 2590
+-- TOC entry 2552 (class 2606 OID 16637)
+-- Dependencies: 175 175 175 2582
 -- Name: belongsto_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -364,8 +287,8 @@ ALTER TABLE ONLY belongsto
 
 
 --
--- TOC entry 2544 (class 2606 OID 16502)
--- Dependencies: 167 167 2590
+-- TOC entry 2536 (class 2606 OID 16502)
+-- Dependencies: 167 167 2582
 -- Name: categories_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -374,18 +297,18 @@ ALTER TABLE ONLY categories
 
 
 --
--- TOC entry 2566 (class 2606 OID 16673)
--- Dependencies: 178 178 178 2590
+-- TOC entry 2556 (class 2606 OID 16721)
+-- Dependencies: 177 177 177 177 177 2582
 -- Name: collaborated_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY collaborated
-    ADD CONSTRAINT collaborated_key PRIMARY KEY (submission, collaborator);
+    ADD CONSTRAINT collaborated_key PRIMARY KEY (collaborator, owner, assignment, date);
 
 
 --
--- TOC entry 2552 (class 2606 OID 16526)
--- Dependencies: 170 170 2590
+-- TOC entry 2542 (class 2606 OID 16526)
+-- Dependencies: 170 170 2582
 -- Name: comments_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -394,18 +317,18 @@ ALTER TABLE ONLY comments
 
 
 --
--- TOC entry 2568 (class 2606 OID 16704)
--- Dependencies: 180 180 180 180 180 180 2590
+-- TOC entry 2558 (class 2606 OID 16728)
+-- Dependencies: 178 178 178 178 178 178 178 178 2582
 -- Name: commentson_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY commentson
-    ADD CONSTRAINT commentson_key PRIMARY KEY (comment, submission, problem, com_start, com_end);
+    ADD CONSTRAINT commentson_key PRIMARY KEY (comment, problem, com_start, com_end, owner, assignment, date);
 
 
 --
--- TOC entry 2564 (class 2606 OID 16655)
--- Dependencies: 177 177 177 2590
+-- TOC entry 2554 (class 2606 OID 16655)
+-- Dependencies: 176 176 176 2582
 -- Name: contains_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -414,28 +337,18 @@ ALTER TABLE ONLY contains
 
 
 --
--- TOC entry 2546 (class 2606 OID 16620)
--- Dependencies: 168 168 2590
+-- TOC entry 2538 (class 2606 OID 16749)
+-- Dependencies: 168 168 168 2582
 -- Name: deadlines_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY deadlines
-    ADD CONSTRAINT deadlines_key PRIMARY KEY (deadlineid);
+    ADD CONSTRAINT deadlines_key PRIMARY KEY (type, date);
 
 
 --
--- TOC entry 2548 (class 2606 OID 16622)
--- Dependencies: 168 168 168 2590
--- Name: deadlines_natural; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY deadlines
-    ADD CONSTRAINT deadlines_natural UNIQUE (type, date);
-
-
---
--- TOC entry 2530 (class 2606 OID 16442)
--- Dependencies: 161 161 2590
+-- TOC entry 2524 (class 2606 OID 16442)
+-- Dependencies: 161 161 2582
 -- Name: groups_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -444,18 +357,18 @@ ALTER TABLE ONLY groups
 
 
 --
--- TOC entry 2560 (class 2606 OID 16624)
--- Dependencies: 174 174 174 2590
+-- TOC entry 2550 (class 2606 OID 16742)
+-- Dependencies: 174 174 174 174 2582
 -- Name: hasdeadline_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY hasdeadline
-    ADD CONSTRAINT hasdeadline_key PRIMARY KEY (assignment, deadline);
+    ADD CONSTRAINT hasdeadline_key PRIMARY KEY (assignment, type, date);
 
 
 --
--- TOC entry 2558 (class 2606 OID 16570)
--- Dependencies: 173 173 173 2590
+-- TOC entry 2548 (class 2606 OID 16570)
+-- Dependencies: 173 173 173 2582
 -- Name: hastype_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -464,8 +377,8 @@ ALTER TABLE ONLY hastype
 
 
 --
--- TOC entry 2532 (class 2606 OID 16440)
--- Dependencies: 162 162 2590
+-- TOC entry 2526 (class 2606 OID 16440)
+-- Dependencies: 162 162 2582
 -- Name: instructors_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -474,8 +387,8 @@ ALTER TABLE ONLY instructors
 
 
 --
--- TOC entry 2536 (class 2606 OID 16462)
--- Dependencies: 164 164 2590
+-- TOC entry 2530 (class 2606 OID 16462)
+-- Dependencies: 164 164 2582
 -- Name: problems_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -484,28 +397,18 @@ ALTER TABLE ONLY problems
 
 
 --
--- TOC entry 2540 (class 2606 OID 16684)
--- Dependencies: 166 166 2590
+-- TOC entry 2534 (class 2606 OID 16756)
+-- Dependencies: 166 166 166 166 2582
 -- Name: submissions_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY submissions
-    ADD CONSTRAINT submissions_key PRIMARY KEY (submissionid);
+    ADD CONSTRAINT submissions_key PRIMARY KEY (owner, submittedfor, date);
 
 
 --
--- TOC entry 2542 (class 2606 OID 16686)
--- Dependencies: 166 166 166 166 2590
--- Name: submissions_natural; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY submissions
-    ADD CONSTRAINT submissions_natural UNIQUE (owner, submittedfor, date);
-
-
---
--- TOC entry 2538 (class 2606 OID 16470)
--- Dependencies: 165 165 2590
+-- TOC entry 2532 (class 2606 OID 16470)
+-- Dependencies: 165 165 2582
 -- Name: submitters_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -514,8 +417,8 @@ ALTER TABLE ONLY submitters
 
 
 --
--- TOC entry 2556 (class 2606 OID 16552)
--- Dependencies: 172 172 172 2590
+-- TOC entry 2546 (class 2606 OID 16552)
+-- Dependencies: 172 172 172 2582
 -- Name: teaches_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -524,8 +427,8 @@ ALTER TABLE ONLY teaches
 
 
 --
--- TOC entry 2554 (class 2606 OID 16534)
--- Dependencies: 171 171 171 171 2590
+-- TOC entry 2544 (class 2606 OID 16534)
+-- Dependencies: 171 171 171 171 2582
 -- Name: validates_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -534,8 +437,8 @@ ALTER TABLE ONLY validates
 
 
 --
--- TOC entry 2550 (class 2606 OID 16518)
--- Dependencies: 169 169 2590
+-- TOC entry 2540 (class 2606 OID 16518)
+-- Dependencies: 169 169 2582
 -- Name: validators_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -544,8 +447,17 @@ ALTER TABLE ONLY validators
 
 
 --
--- TOC entry 2580 (class 2606 OID 16638)
--- Dependencies: 2533 163 176 2590
+-- TOC entry 2559 (class 1259 OID 16740)
+-- Dependencies: 178 178 2582
+-- Name: fki_commentson_contains_forkey; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX fki_commentson_contains_forkey ON commentson USING btree (assignment, problem);
+
+
+--
+-- TOC entry 2571 (class 2606 OID 16638)
+-- Dependencies: 2527 163 175 2582
 -- Name: belongsto_assignments_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -554,8 +466,8 @@ ALTER TABLE ONLY belongsto
 
 
 --
--- TOC entry 2581 (class 2606 OID 16643)
--- Dependencies: 2529 176 161 2590
+-- TOC entry 2572 (class 2606 OID 16643)
+-- Dependencies: 175 2523 161 2582
 -- Name: belongsto_groups_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -564,18 +476,18 @@ ALTER TABLE ONLY belongsto
 
 
 --
--- TOC entry 2584 (class 2606 OID 16687)
--- Dependencies: 2539 178 166 2590
+-- TOC entry 2576 (class 2606 OID 16757)
+-- Dependencies: 177 177 166 166 166 177 2533 2582
 -- Name: collaborated_submissions_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY collaborated
-    ADD CONSTRAINT collaborated_submissions_forkey FOREIGN KEY (submission) REFERENCES submissions(submissionid);
+    ADD CONSTRAINT collaborated_submissions_forkey FOREIGN KEY (owner, assignment, date) REFERENCES submissions(owner, submittedfor, date);
 
 
 --
--- TOC entry 2585 (class 2606 OID 16692)
--- Dependencies: 165 178 2537 2590
+-- TOC entry 2575 (class 2606 OID 16692)
+-- Dependencies: 2531 177 165 2582
 -- Name: collaborated_submitters_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -584,8 +496,8 @@ ALTER TABLE ONLY collaborated
 
 
 --
--- TOC entry 2586 (class 2606 OID 16705)
--- Dependencies: 2551 170 180 2590
+-- TOC entry 2577 (class 2606 OID 16705)
+-- Dependencies: 178 170 2541 2582
 -- Name: commentson_comments_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -594,8 +506,18 @@ ALTER TABLE ONLY commentson
 
 
 --
--- TOC entry 2588 (class 2606 OID 16715)
--- Dependencies: 180 2535 164 2590
+-- TOC entry 2579 (class 2606 OID 16735)
+-- Dependencies: 178 2553 176 176 178 2582
+-- Name: commentson_contains_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY commentson
+    ADD CONSTRAINT commentson_contains_forkey FOREIGN KEY (assignment, problem) REFERENCES contains(assignment, problem);
+
+
+--
+-- TOC entry 2578 (class 2606 OID 16715)
+-- Dependencies: 164 2529 178 2582
 -- Name: commentson_problems_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -604,18 +526,18 @@ ALTER TABLE ONLY commentson
 
 
 --
--- TOC entry 2587 (class 2606 OID 16710)
--- Dependencies: 180 2539 166 2590
+-- TOC entry 2580 (class 2606 OID 16762)
+-- Dependencies: 2533 166 178 178 178 166 166 2582
 -- Name: commentson_submissions_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY commentson
-    ADD CONSTRAINT commentson_submissions_forkey FOREIGN KEY (submission) REFERENCES submissions(submissionid);
+    ADD CONSTRAINT commentson_submissions_forkey FOREIGN KEY (owner, assignment, date) REFERENCES submissions(owner, submittedfor, date);
 
 
 --
--- TOC entry 2582 (class 2606 OID 16656)
--- Dependencies: 163 177 2533 2590
+-- TOC entry 2573 (class 2606 OID 16656)
+-- Dependencies: 2527 163 176 2582
 -- Name: contains_assignments_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -624,8 +546,8 @@ ALTER TABLE ONLY contains
 
 
 --
--- TOC entry 2583 (class 2606 OID 16661)
--- Dependencies: 164 177 2535 2590
+-- TOC entry 2574 (class 2606 OID 16661)
+-- Dependencies: 2529 176 164 2582
 -- Name: contains_problems_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -634,8 +556,8 @@ ALTER TABLE ONLY contains
 
 
 --
--- TOC entry 2578 (class 2606 OID 16603)
--- Dependencies: 2533 163 174 2590
+-- TOC entry 2569 (class 2606 OID 16603)
+-- Dependencies: 174 2527 163 2582
 -- Name: hasdeadline_assignments_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -644,18 +566,18 @@ ALTER TABLE ONLY hasdeadline
 
 
 --
--- TOC entry 2579 (class 2606 OID 16625)
--- Dependencies: 174 2545 168 2590
+-- TOC entry 2570 (class 2606 OID 16750)
+-- Dependencies: 168 174 2537 168 174 2582
 -- Name: hasdeadline_deadlines_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY hasdeadline
-    ADD CONSTRAINT hasdeadline_deadlines_forkey FOREIGN KEY (deadline) REFERENCES deadlines(deadlineid);
+    ADD CONSTRAINT hasdeadline_deadlines_forkey FOREIGN KEY (type, date) REFERENCES deadlines(type, date);
 
 
 --
--- TOC entry 2576 (class 2606 OID 16571)
--- Dependencies: 163 2533 173 2590
+-- TOC entry 2567 (class 2606 OID 16571)
+-- Dependencies: 173 2527 163 2582
 -- Name: hastype_assignments_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -664,8 +586,8 @@ ALTER TABLE ONLY hastype
 
 
 --
--- TOC entry 2577 (class 2606 OID 16576)
--- Dependencies: 173 167 2543 2590
+-- TOC entry 2568 (class 2606 OID 16576)
+-- Dependencies: 2535 167 173 2582
 -- Name: hastype_categories_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -674,8 +596,8 @@ ALTER TABLE ONLY hastype
 
 
 --
--- TOC entry 2571 (class 2606 OID 16490)
--- Dependencies: 163 2533 166 2590
+-- TOC entry 2562 (class 2606 OID 16490)
+-- Dependencies: 166 163 2527 2582
 -- Name: submissions_assignments_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -684,8 +606,8 @@ ALTER TABLE ONLY submissions
 
 
 --
--- TOC entry 2570 (class 2606 OID 16485)
--- Dependencies: 166 165 2537 2590
+-- TOC entry 2561 (class 2606 OID 16485)
+-- Dependencies: 165 2531 166 2582
 -- Name: submissions_submitters_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -694,8 +616,8 @@ ALTER TABLE ONLY submissions
 
 
 --
--- TOC entry 2569 (class 2606 OID 16471)
--- Dependencies: 2529 165 161 2590
+-- TOC entry 2560 (class 2606 OID 16471)
+-- Dependencies: 2523 161 165 2582
 -- Name: submitter_group_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -704,8 +626,8 @@ ALTER TABLE ONLY submitters
 
 
 --
--- TOC entry 2575 (class 2606 OID 16558)
--- Dependencies: 172 161 2529 2590
+-- TOC entry 2566 (class 2606 OID 16558)
+-- Dependencies: 161 172 2523 2582
 -- Name: teaches_groups_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -714,8 +636,8 @@ ALTER TABLE ONLY teaches
 
 
 --
--- TOC entry 2574 (class 2606 OID 16553)
--- Dependencies: 162 2531 172 2590
+-- TOC entry 2565 (class 2606 OID 16553)
+-- Dependencies: 2525 172 162 2582
 -- Name: teaches_instructors_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -724,8 +646,8 @@ ALTER TABLE ONLY teaches
 
 
 --
--- TOC entry 2573 (class 2606 OID 16540)
--- Dependencies: 163 171 2533 2590
+-- TOC entry 2564 (class 2606 OID 16540)
+-- Dependencies: 2527 163 171 2582
 -- Name: validates_assignment_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -734,8 +656,8 @@ ALTER TABLE ONLY validates
 
 
 --
--- TOC entry 2572 (class 2606 OID 16535)
--- Dependencies: 169 2549 171 2590
+-- TOC entry 2563 (class 2606 OID 16535)
+-- Dependencies: 2539 169 171 2582
 -- Name: validates_validator_forkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -743,7 +665,7 @@ ALTER TABLE ONLY validates
     ADD CONSTRAINT validates_validator_forkey FOREIGN KEY (validator) REFERENCES validators(name);
 
 
--- Completed on 2013-01-11 20:02:04 EST
+-- Completed on 2013-01-12 13:46:14 EST
 
 --
 -- PostgreSQL database dump complete
