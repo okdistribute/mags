@@ -218,6 +218,8 @@ $$\vbox{
     description  & Variable String  & --- \cr
     testsuite  & Variable String  & --- \cr
     solution  & Variable String & --- \cr
+    grader & Variable String & --- \cr
+    grader\_params & Variable String & --- \cr
   }
 }$$
 
@@ -494,6 +496,10 @@ An instructor comments on a submission by taking a comment
 and associating it with a start and end position somewhere in the submission. 
 A comment may be used in multiple places in an assignment. 
 Additionally a comment is marked as relating to a specific problem.
+Please note the unmentioned constraint here, that the problem that is commented 
+on should be one of the problems contained by the assignment for which the 
+submission was submitted. If this is not the case, then who knows what could 
+happen.
 
 $$\vbox{
   \offinterlineskip
@@ -531,7 +537,97 @@ Natural Key: {\tt comment}, {\tt submission},
 
 \chapter{Interfacing with Autograders or Writing Your Own}
 
+The main MAGS application server has no built-in auto-grading support. 
+Auto-grading is very specific to the domain and especially the language
+being used. To make MAGS able to handle many different environments, 
+we have no specific interface for auto-graders except by standard input and 
+standard output. Auto-graders are invoked as shell commands with specific, 
+standard arguments. The test results should be printed to standard output. The 
+output is in XML format. Most programming languages that may benefit from MAGS
+have mature XML capabilities so this should not be an imposition. The rest of 
+this chapter focuses on these two interfaces: the command-line format and 
+the XML schema. Once an auto-grader has been designed according to these 
+specifications, it need only be installed in the binary path of the application
+server before it may be used.
 
+\section{Command-line Interface}
+
+\noindent
+The command-line interface described here gives the arguments with which each 
+instance of the auto-grader is called. In particular, each problem in an 
+assignment will spawn one instance of the auto-grader. Each invocation is 
+expected to be referentially transparent, meaning that multiple runs of an 
+auto-grader with the same arguments should produce the same output. One should 
+not rely on hidden state to get reasonable results. The pattern fo arguments
+looks like this:
+
+\medskip\verbatim
+<grader> : test-suite solution submission [extra ...]
+|endverbatim\medskip
+
+\noindent
+Each problem is associated with a {\tt test-suite} and a {\tt solution}, so 
+these will change on a per problem basis. The {\tt submission} is provided 
+as the unique student submission. It is tied to the code field of the student
+submission database. The {\tt extra} fields are given on a per problem basis
+to provide more information to the auto-grader if necessary. If an error 
+occurs during grading, this should be reported through the return value of 
+the program according to the standard operating system conventions.
+
+\section{XML Result Schema}
+
+\noindent
+Auto-graders return grading results via standard output in an XML format 
+documented here. In particular, grading results are divided into tests that are 
+expected to either pass or fail. The result of a test indicates what the 
+expected result was as well as the actual result of the test. In addition to 
+the pass/fail result of the test and the name of the test, there are 
+an arbitrary number of properties that can store additional information. 
+The actual properties used in an auto-grader are chosen by the specific
+auto-grader and may not even use the same set of properties for each test in a 
+given run. That is, all properties are optional. Tests may be grouped 
+into test groups, but need not be. Test groups may also nest. All results 
+are contained inside a root {\tt grading-results} node. What follows is a 
+description of the nodes and their attributes.
+
+\medskip
+{\flushleft 
+Node Name: {\tt grading-results}
+Attributes: ---
+Valid Child Nodes: {\tt test-group}, {\tt test-result}
+Description: Root node of the auto-grader output.
+}\medskip
+
+{\flushleft
+Node Name: {\tt test-group}
+Attributes: {\tt name}
+Valid Child Nodes: {\tt test-group}, {\tt test-result}
+Description: Groups together a set of testing results.
+}\medskip
+
+{\flushleft
+Node Name: {\tt test-result}
+Attributes: {\tt name}, {\tt result}, {\tt expected}
+Valid Child Nodes: {\tt test-property}
+Description: Gives the result of a single test, its pass or fail status, and the 
+name of the test.
+}\medskip
+
+{\flushleft
+Node Name: {\tt test-property}
+Attributes: {\tt name}
+Valid Child Nodes: Character data
+Description: Gives a single property of a test result. The value of the property 
+is given as data in the property, while the name is given as an attribute.
+}\medskip
+
+\section{Handling Errors}
+
+\noindent
+If a critical error in grading occurs, the auto-grader is not expected to 
+produce valid result data provided this situation is adequately reported in the 
+return code. In this case, the output thus far will be used in the error but 
+will not be used as report data. 
 
 \chapter{Scheme Autograder}
 
