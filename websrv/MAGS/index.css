@@ -19,5 +19,9 @@ h1 {
 
 #info {
   float: right;
-  margin: 0em 0em 0em 2em;
+  margin: 0em 1em 0em 2em;
+}
+
+#content {
+  margin-top: 1em;
 }
