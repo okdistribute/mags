@@ -15,8 +15,7 @@
               :If ∨/0 ¯1=⊃#.SQA.Init''
                   (dsn opts user pwd)←{6::'' ⋄ ⍎⍵}¨'ds.'∘,¨'DSN' 'DriverOptions' 'User' 'Password'
                   conx←{⊃('C'∘,¨⍕¨⍳1+⍴⍵)~⍵}⊃¨2 2⊃#.SQA.Tree'.'
-                  opts←'DriverOptions' opts 'UNICODE' 'UTF-8'
-                  :If 0=1⊃rc←#.SQA.Connect conx dsn pwd user opts ⋄ r←0 conx
+                  :If 0=1⊃rc←#.SQA.Connect conx dsn pwd user('DriverOptions'opts) ⋄ r←0 conx
                   :Else ⋄ r←601('Unable to connect to "',database,'"')
                   :EndIf
               :EndIf
