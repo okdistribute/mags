@@ -24,11 +24,10 @@
  req.Return bod
  req.Title 'MAGS: McKelvey Auto-Grading System'
  req.Style 'index.css'
- ⎕←⍴#.Database.StudentSubmissions 'awhsu'
 ∇
 
  RenderAssignments←{
-     ⊂'Assignments go here'
+     ,#.Database.StudentAssignments ⍵
  }
  
  ReadFile←{

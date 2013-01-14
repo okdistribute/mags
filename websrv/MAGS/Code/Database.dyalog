@@ -9,7 +9,7 @@
 
  InsGrpSQL←'INSERT INTO groups(name) VALUES ('
 
- InsStudSQL←'INSERT INTO submitters(networkid, firstname, lastname, memberof) '
+ InsStudSQL←'INSERT INTO submitters(networkid, firstname, lastname) '
  InsStudSQL,←'VALUES ('
 
  InsAssgnSQL←'INSERT INTO assignments(name) VALUES ('
@@ -18,6 +18,20 @@
  InsProbSQL,←'problems(name, testsuite, solution, '
  InsProbSQL,←'description, grader, grader_params) '
  InsProbSQL,←'VALUES ('
+ 
+ InsContainsSQL←'INSERT INTO '
+ InsContainsSQL,←'contains(assignment, problem, number) '
+ InsContainsSQL,←'VALUES ('
+ 
+ InsMemOfSQL←'INSERT INTO '
+ InsMemOfSQL,←'memberof("group", student) '
+ InsMemOfSQL,←'VALUES ('
+ 
+ InsBelToSQL←'INSERT INTO belongsto("group", assignment) VALUES ('
+ 
+ StudAssgnSQL←'SELECT assignment FROM belongsto, memberof '
+ StudAssgnSQL,←'WHERE belongsto.group = memberof.group '
+ StudAssgnSQL,←'  and memberof.student = '
 
  Do←{0≠⊃z←#.SQL.ConnectTo'MAGSDB':4↑z ⋄ (#.SQA.Close 1⊃z)⊢4↑#.SQA.Do(1↓z),⍵}
 
@@ -38,6 +52,13 @@
      0=⊃⍴2 0⊃res:⎕XML ''
      ⎕XML fromUTF8 2 0 (0 0)⊃res
  }
+ 
+ StudentAssignments←{
+     bvs dat←MkBVS ⊂⍵
+     res←Do(StudAssgnSQL,⊃bvs)(⊃dat)
+     0≠⊃res:0 1⍴⊂''
+     fromUTF8¨2 0⊃res
+ }
 
  ⍝ Right Argument: Simple character vector of the group name
  InsertGroup←{
@@ -55,7 +76,6 @@
  ⍝     network id
  ⍝     first name
  ⍝     last name
- ⍝     group name of which the student is a member
  InsertStudent←{
      bvs dat←MkBVS ⍵
      ⊃Do (⊂InsStudSQL,(⊃{⍺,', ',⍵}/bvs),');'),dat
@@ -72,7 +92,32 @@
      bvs dat←MkBVS ⍵
      ⊃Do(⊂InsProbSQL,(⊃{⍺,', ',⍵}/bvs),');'),dat
  }
-
+ 
+ ⍝ Right Argument: Nested vector of
+ ⍝     Name of the Assignment
+ ⍝     Name of the Problem
+ ⍝     Text of the problem number
+ InsertContains←{
+     bvs dat←MkBVS ⍵
+     ⊃Do(⊂InsContainsSQL,(⊃{⍺,', ',⍵}/bvs),');'),dat
+ }
+ 
+ ⍝ Right Argument: Nested Vector of
+ ⍝     Name of group
+ ⍝     Name of student (networkid)
+ InsertMemberOf←{
+     bvs dat←MkBVS ⍵
+     ⊃Do(⊂InsMemOfSQL,(⊃{⍺,', ',⍵}/bvs),');'),dat
+ }
+ 
+ ⍝ Right Argument: Nested vector of
+ ⍝     Name of group
+ ⍝     Name of assignemtn
+ InsertBelongsTo←{
+      bvs dat←MkBVS ⍵
+      ⊃Do(⊂InsBelToSQL,(⊃{⍺,', ',⍵}/bvs),');'),dat
+ }
+ 
  ⍝ The following compensates for systems without Unicode wide character support
  toUTF8←{⎕UCS'UTF-8'⎕UCS ⍵}
  fromUTF8←{'UTF-8' ⎕UCS ⎕UCS ⍵}
