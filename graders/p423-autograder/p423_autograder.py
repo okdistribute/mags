@@ -57,17 +57,15 @@ class P423Grader:
 
     cwd = os.getcwd()
 
-    cmd = "git clone git@github.iu.edu:"+repo+"/"+self.framework+".git"
-    print("pulling framework: " + cmd)
+    cmd = "git clone git@github.iu.edu:"+repo+"/"+self.framework+".git > /dev/null 2>&1"
     os.system(cmd)
     os.chdir(self.framework)
-    print("checking out commit: " + solution_hash)
-    os.system("git checkout " + solution_hash)
+    os.system("git checkout " + solution_hash + " > /dev/null 2>&1")
     os.chdir(cwd)
 
-    os.system("git clone git@github.iu.edu:"+repo+"/"+username+".git")
+    os.system("git clone git@github.iu.edu:"+repo+"/"+username+".git > /dev/null 2>&1")
     os.chdir(username)
-    os.system("git checkout " + student_hash)
+    os.system("git checkout " + student_hash + " > /dev/null 2>&1")
     os.chdir(cwd)
 
   def grade(self):
@@ -106,10 +104,10 @@ class P423Grader:
       # will return 'HEAD' for the hash instead of an actual hash
      report = """ <grading-results>
                  <test-group name =\"valid-tests NO SUBMISSION\">
-                    <test-result expected=\"pass\" got=\"fail\"/>
+                    <test-result expected=\"pass\" result =\"fail\"/>
                   </test-group>
                   <test-group name =\"invalid-tests NO SUBMISSION\">
-                    <test-result expected=\"pass\" got=\"fail\"/>
+                    <test-result expected=\"pass\" result=\"fail\"/>
                   </test-group>
                 </grading-results>
               
@@ -120,11 +118,9 @@ class P423Grader:
     src = cwd+"/"+self.username+"/"+self.sdir
     dest = cwd+"/"+self.framework+"/"+self.sdir
 
-    print("copying " + src + " to " + dest)
     try:
       self.copytree(src, dest)
     except:
-      print("scheme compiler not found. trying haskell")
       try:
         self.cmd = 'haskell'
         src = cwd+"/"+self.username+"/"+self.hdir
@@ -133,7 +129,6 @@ class P423Grader:
         raise RuntimeError("No valide compiler directories found")
 
     os.chdir(cwd+"/"+self.framework)
-    print("changed directory to: " + os.getcwd() + "running makefile")
 
     # start up the scheme process by calling the makefile in the framework repository
     p = subprocess.Popen(
@@ -176,6 +171,7 @@ class P423Grader:
         if garbage:
           if 'test-group' in chunk:
             garbage = False
+            report += chunk
         else:
           report += chunk
 
@@ -219,18 +215,17 @@ class P423Grader:
     this was taking from a stack overflow article
 
     """
-      if not os.path.exists(dst):
-          os.makedirs(dst)
-      for item in os.listdir(src):
-          s = os.path.join(src, item)
-          d = os.path.join(dst, item)
-          if os.path.isdir(s):
-              copytree(s, d, symlinks, ignore)
-          else:
-              if not os.path.exists(d) or os.stat(src).st_mtime - os.stat(dst).st_mtime > 1:
-                  shutil.copy2(s, d)
-      
-  
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            copytree(s, d, symlinks, ignore)
+        else:
+            if not os.path.exists(d) or os.stat(src).st_mtime - os.stat(dst).st_mtime > 1:
+                shutil.copy2(s, d)
+    
 def main():
 
   if len(sys.argv) < 3:

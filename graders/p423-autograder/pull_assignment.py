@@ -29,10 +29,10 @@ class AssignmentPuller:
     RETURNS: this object.
 
     """
-    self.repo = "p423-523-sp13"
     self.assignment = assignment
     self.usernames = usernames
     self.hashes = []
+    self.failed_hashes = []
 
   def pull_assignment(self):
     """
@@ -48,8 +48,6 @@ class AssignmentPuller:
     RETURNS: a filename with the location of the username/hash associations.
 
     """
-    failed = self.assignment+"/"+"failed_pull_"+self.assignment+".txt"
-    hashes = self.assignment+"/"+"student_hashes_"+self.assignment+".txt"
     if not os.path.exists(self.assignment):
       os.mkdir(self.assignment)
     out = open(hashes,"w")
@@ -63,9 +61,8 @@ class AssignmentPuller:
     # pull each repository and write its hash out to the output file
     for username in self.usernames:
       username = username.strip()
-      os.system("git clone git@github.iu.edu:"+self.repo+"/"+username+".git")
+      os.system("git clone git@github.iu.edu:p423-523-sp13/"+username+".git")
       os.system("git checkout " + self.assignment)
-  
       os.chdir(username)
   
       # grab the revision from HEAD
@@ -87,13 +84,8 @@ class AssignmentPuller:
 
           res = username+"/"+hash
           self.hashes.append(res)
-          out.write(res+"\n")
-          out.flush()
       except:
-         f = open(failed,"a")
-         f.write(username+"\n")
-         f.flush()
-         f.close()
+         self.failed_hashes.append(username+"\n")
   
       os.chdir(cwd)
   
