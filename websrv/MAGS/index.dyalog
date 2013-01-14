@@ -19,12 +19,42 @@
  tmp←BRA'Logged in as ',usr,'.'
  tmp,←'href' 'https://cas.iu.edu/cas/logout'#.HTML.a 'Logout'
  bod,←'div id="info"'Enclose tmp
- bod,←'assignments'List⊂'Assignments go here'
- bod,←'div id="content"'Enclose'Content will go here.'
+ bod,←'assignments'List RenderAssignments usr
+ bod,←'div id="content"'Enclose RenderContent ''
  req.Return bod
  req.Title 'MAGS: McKelvey Auto-Grading System'
  req.Style 'index.css'
+ ⎕←⍴#.Database.StudentSubmissions 'awhsu'
 ∇
+
+ RenderAssignments←{
+     ⊂'Assignments go here'
+ }
+ 
+ ReadFile←{
+     0::⎕SIGNAL ⎕EN
+     tie←⍵ ⎕NTIE 0
+     ints←⎕NREAD tie 83,⎕NSIZE tie
+     'UTF-8' ⎕UCS ints
+ }
+ 
+ RenderContent←{
+     xml←⍉⎕XML ReadFile './sample_results.xml'
+     grpbv←1=1⌷xml ⋄ attrs←4⌷xml
+     'table'Enclose⊃,/(grpbv/attrs)RenderTestGroup¨1↓¨grpbv⊂attrs
+ }
+ 
+ RenderTestGroup←{
+     res←'tr'Enclose'th colspan="3"'Enclose⊃(2,⍺[;1]⍳⊂'name')⌷⍉⍺
+     res,⊃,/RenderTestResult¨⍵
+ }
+ 
+ RenderTestResult←{
+     nam exp act←2('name' 'expected' 'result'⍳⍨1⌷⍉⍵)⌷(⍉⍵)
+     cols←⊃,/(⊂'td')Enclose¨exp act
+     exp≢act:'tr' Enclose ('td class="test_failed"' Enclose nam),cols
+     'tr' Enclose ('td class="test_passed"' Enclose nam),cols
+ }
 
  CASValidate←{
      casticket≡'':CASRedirect ⍵
