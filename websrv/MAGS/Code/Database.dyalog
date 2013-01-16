@@ -79,7 +79,7 @@
  ⍝ This produces an SQL string followed by bind variable values 
  ⍝ that can be passed to Do.
  
- INSERT←{(⊂'INSERT ',⊃⍵,';'),1⊃⍵}
+ INSERT←{(⊂'INSERT ',(⊃⍵),';'),1⊃⍵}
  INTO←{tbl sql dat←⍵ ⋄ ('INTO ',tbl,' ',sql) dat}
  VALUES←{⍺ ('VALUES (',(com sep ⊃⍵),')')(1⊃⍵)}
  
@@ -99,6 +99,18 @@
  SELECT←{(⊂'SELECT ',(⊃⍵),';'),1⊃⍵}
  FROM←{(,/⍺' FROM '(⊃⍵)),1↓⍵}
  WHERE←{(⊃,/⍺ ' WHERE ' (and sep ⊃⍵))(1⊃⍵)}
+ 
+ ⍝ The following is the analogous form for UPDATE and is expected 
+ ⍝ to be used as follows:
+ ⍝ 
+ ⍝   UPDATE tbl SET assgns WHERE bvs dat
+ ⍝
+ ⍝ Here the assgns should be a single string of the assignments, 
+ ⍝ and the dat should contain both the variables for the bvs and 
+ ⍝ for any bind variables in the assgns string.
+ 
+ UPDATE←{(⊂'UPDATE ',(⊃⍵),';'),1⊃⍵}
+ SET←{(,/⍺' SET '(⊃⍵)),1↓⍵}
  
  ⍝ The following are the basic insertion functions for the various tables
  ⍝ in the system. See the documentation of the database schema for more
@@ -135,6 +147,29 @@
      bvs dat←(⊂'memberof.student = ')MkBVS ⊂⍵
      bvs,←⊂'belongsto.group_name = memberof.group_name'
      fromUTF8¨Do SELECT 'assignment' FROM 'belongsto, memberof' WHERE bvs dat 
+ }
+ 
+ ⍝ RightArgument: assignment name
+ AssignmentProblems←{
+     bvs dat←(⊂'contains.assignment = ')MkBVS⊂⍵
+     bvs,←⊂'contains.problem = problems.name'
+     flds←'name,grader,testsuite,solution,grader_params'
+     tbls←'problems,contains'
+     fromUTF8¨Do SELECT flds FROM tbls WHERE bvs dat 
+ }
+ 
+ ⍝ The following function is for updating the value of the report column 
+ ⍝ for a submission. Normally submissions will not be given a report when
+ ⍝ they are first submitted, but will be graded at a later date. Thus,
+ ⍝ we leave the report field empty until we fill it in with something like 
+ ⍝ this. The right argument is the XML for the report, and the left argument
+ ⍝ is the natural key of the submission to update with the xml.
+ 
+ UpdateReport←{
+     bvs dat←('owner' 'submittedfor',¨⊂' = ')MkBVS 2↑⍺
+     bvs,←⊂'date = :<S:' ⋄ dat,←2↓⍺
+     sbv←⊃⊃sbv val←(⊂'report = ')MkBVS ⊂⍵
+     Do UPDATE 'submissions' SET sbv WHERE bvs(val,dat)
  }
  
 :EndNamespace
