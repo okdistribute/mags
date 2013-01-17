@@ -120,25 +120,71 @@
 ⍝ Otherwise, we should display the content that the user requests.
 ⍝ We create a nested list of the test results, where each group
 ⍝ creates another level of nesting in the unordered list.
-⍝ Right now are just putting in some sample results, without 
-⍝ doing anything dynamic.
- 
- RenderContent←{
+
+RenderContent←{
+   ⍝ Right now we are just reading in a sample result file
      xml←⎕XML ReadFile './sample_results.xml'
+   ⍝ 
+   ⍝ getidx allows us to pass a character vector of a node 
+   ⍝ name and get the indices of all those nodex in the 
+   ⍝ tree.
      getidx←(/∘(⍳⊃⍴xml))∘(xml[;2]∘∊∘⊂)
+   ⍝
+   ⍝ We care about three distinct nodes, the groups, the results, 
+   ⍝ and the properties.
      gi ri pi←getidx¨'test-group' 'test-result' 'test-property'
+   ⍝
+   ⍝ To transform the xml into the HTML result, we have to know 
+   ⍝ how to shift the rows to accomodate the new nodes (ul) for
+   ⍝ indicating the nesting in HTML. The basic rule is that 
+   ⍝ each group now takes up two rows for its two nodes used to 
+   ⍝ represent it, so we shift by one each time we encounter a 
+   ⍝ group.
      sgi sri spi←+⌿¨(⊂gi)∘.<¨gi ri pi
+   ⍝  
+   ⍝ Then we can compute the new node indices of the resulting 
+   ⍝ HTML based on the above shift values.
      ngi nri npi←gi ri pi+sgi sri spi
-     res←(⊃1+(2×⍴gi)+⍴ri)4⍴0 '' '' (0 2⍴⍬)
+   ⍝
+   ⍝ Right now we are creating a result only out of the results 
+   ⍝ and the groups, ignoring the properties, so we create an 
+   ⍝ empty XML tree to handle the right number of nodes that we
+   ⍝ know will be in there, two for each group, and one for 
+   ⍝ each result.
+     res←(⊃1+(2×⍴gi)+⍴ri)4⍴0 '' '' (0 2⍴'')
+   ⍝
+   ⍝ All groups and result nodes will turn into li nodes
      res[ngi,nri;2]←⊂'li'
-     res[ngi,nri;4]←⊂0 2⍴''
+   ⍝
+   ⍝ These two functions help us extract the name and 
+   ⍝ whether or not the test was passed when given an attribute 
+   ⍝ matrix.
      getname←{⊃(⍵[;1]∊⊂'name')/⍵[;2]}
      getpass←{⊃≡/(⍵[;1]∊'result' 'expected')/⍵[;2]}
+   ⍝
+   ⍝ The group character values will just be the names of 
+   ⍝ the groups.
      res[ngi;3]←getname¨gi 4⌷xml
+   ⍝
+   ⍝ We want to create some kind of message indicating the 
+   ⍝ pass or fail of the result.
      pass←('...failed!' '...passed.')[1+getpass¨ri 4⌷xml]
+   ⍝
+   ⍝ The pass results will be appended to the test name in 
+   ⍝ the output.
      res[nri;3]←(getname¨ri 4⌷xml),¨pass
+   ⍝
+   ⍝ Each group introduces another level of nesting in the form 
+   ⍝ of a ul node right below it.
      res[1,1+ngi;2]←⊂'ul'
+   ⍝
+   ⍝ Finally, we need to adjust the depths of the tree to turn 
+   ⍝ it from a flat set of nodes into a tree with the right 
+   ⍝ dependencies. We can do all of this using the shift 
+   ⍝ values and the original depth vector as appropriate.
      res[(1+ngi),ngi,nri;1]←xml[gi,gi,ri;1]+(1+sgi),sgi,sri
+   ⍝
+   ⍝ Finally this is all boxed up into a content div.
      'div id="content"'Enclose ⎕XML res
  }
  
