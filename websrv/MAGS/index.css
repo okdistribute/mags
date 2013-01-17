@@ -25,23 +25,10 @@ h1 {
 
 #content {
   margin-top: 1em;
-  margin-left: 25%;
+  margin-left: 23%;
 }
 
-#content table {
-  width: 75%;
-}
-
-#content th {
-  text-align: left;
-  background-color: skyblue;
-  padding: 0.5em;
-}
-
-#content td {
-  text-align: right;
-}
-
-#content .test_passed,#content .test_failed {
-  text-align: left;
+#content ul { 
+  list-style: none; 
+  padding-left: 1em;
 }

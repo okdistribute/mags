@@ -118,28 +118,26 @@
 ⍝ interesting to put in the middle or not. By default we should 
 ⍝ display the latest assignment (by date) that has been submitted.
 ⍝ Otherwise, we should display the content that the user requests.
+⍝ We create a nested list of the test results, where each group
+⍝ creates another level of nesting in the unordered list.
 ⍝ Right now are just putting in some sample results, without 
 ⍝ doing anything dynamic.
  
  RenderContent←{
-     xml←⍉⎕XML ReadFile './sample_results.xml'
-     grpbv←1=1⌷xml ⋄ attrs←4⌷xml
-     z←'table'Enclose⊃,/(grpbv/attrs)RenderTestGroup¨1↓¨grpbv⊂attrs
-     'div id="content"'Enclose z
+     xml←⎕XML ReadFile './sample_results.xml'
+     getidx←(/∘(⍳⊃⍴xml))∘(xml[;2]∘∊∘⊂)
+     gi ri pi←getidx¨'test-group' 'test-result' 'test-property'
+     sgi sri spi←+⌿¨(⊂gi)∘.<¨gi ri pi
+     ngi nri npi←gi ri pi+sgi sri spi
+     res←(⊃1+(2×⍴gi)+⍴ri)4⍴0 '' '' (0 2⍴⍬)
+     res[ngi,nri;2]←⊂'li'
+     res[ngi,nri;4]←⊂0 2⍴''
+     res[ngi,nri;3]←{⊃(⍵[;1]∊⊂'name')/⍵[;2]}¨(gi,ri)4⌷xml
+     res[1,1+ngi;2]←⊂'ul'
+     res[(1+ngi),ngi,nri;1]←xml[gi,gi,ri;1]+(1+sgi),sgi,sri
+     'div id="content"'Enclose ⎕XML res
  }
  
- RenderTestGroup←{
-     res←'tr'Enclose'th colspan="3"'Enclose⊃(2,⍺[;1]⍳⊂'name')⌷⍉⍺
-     res,⊃,/RenderTestResult¨⍵
- }
- 
- RenderTestResult←{
-     nam exp act←2('name' 'expected' 'result'⍳⍨1⌷⍉⍵)⌷(⍉⍵)
-     cols←⊃,/(⊂'td')Enclose¨exp act
-     exp≢act:'tr' Enclose ('td class="test_failed"' Enclose nam),cols
-     'tr' Enclose ('td class="test_passed"' Enclose nam),cols
- }
-
 ⍝This is a simple functin to read in a UTF-8 file.
  
  ReadFile←{
