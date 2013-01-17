@@ -149,13 +149,20 @@
      fromUTF8¨Do SELECT 'assignment' FROM 'belongsto, memberof' WHERE bvs dat 
  }
  
- ⍝ RightArgument: assignment name
+ ⍝ RightArgument: assignment_name
  AssignmentProblems←{
      bvs dat←(⊂'contains.assignment = ')MkBVS⊂⍵
      bvs,←⊂'contains.problem = problems.name'
      flds←'name,grader,testsuite,solution,grader_params'
      tbls←'problems,contains'
      fromUTF8¨Do SELECT flds FROM tbls WHERE bvs dat 
+ }
+ 
+ ⍝ RightArgument: student assignment date
+ StudentCode←{
+     bvs dat←('owner' 'submittedfor',¨⊂' = ')MkBVS 2↑⍵
+     bvs,←⊂'date = :<S:' ⋄ dat,←2↓⍵
+     fromUTF8⊃Do SELECT 'code' FROM 'submissions' WHERE bvs dat
  }
  
  ⍝ The following function is for updating the value of the report column 
