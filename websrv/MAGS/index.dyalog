@@ -132,7 +132,11 @@
      res←(⊃1+(2×⍴gi)+⍴ri)4⍴0 '' '' (0 2⍴⍬)
      res[ngi,nri;2]←⊂'li'
      res[ngi,nri;4]←⊂0 2⍴''
-     res[ngi,nri;3]←{⊃(⍵[;1]∊⊂'name')/⍵[;2]}¨(gi,ri)4⌷xml
+     getname←{⊃(⍵[;1]∊⊂'name')/⍵[;2]}
+     getpass←{⊃≡/(⍵[;1]∊'result' 'expected')/⍵[;2]}
+     res[ngi;3]←getname¨gi 4⌷xml
+     pass←('...failed!' '...passed.')[1+getpass¨ri 4⌷xml]
+     res[nri;3]←(getname¨ri 4⌷xml),¨pass
      res[1,1+ngi;2]←⊂'ul'
      res[(1+ngi),ngi,nri;1]←xml[gi,gi,ri;1]+(1+sgi),sgi,sri
      'div id="content"'Enclose ⎕XML res
