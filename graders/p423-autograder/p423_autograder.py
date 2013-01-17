@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python
 import sys
 import os
 import shutil
@@ -18,9 +18,24 @@ class P423Grader:
   We only handle one student at a time in this class.
   for a script to loop over multiple students, see the 
   test_runner.py script in the same directory. 
+
+  This script assumes that you have a makefile which runs
+  a test suite and returns xml output corresponding to the
+  xml schema given in the mags developer docs. 
+
+  The general workflow for a grading run is to instantiate 
+  this script with a test suite (ignored) a solution hash to a git repository,
+  a username, github hash pair of the student delimited by "/". E.g. "jsmith/2341341a$2341".
+
+  The script will pull the solution repository, the students repository, and then copy
+  over the whole "Compiler" or "CompileHs" directory into the solution repository and 
+  invoke the makefile from there. We assume that the makefile commands are "make scheme"
+  and "make haskell" respectively. If you would like to run a different command, 
+  you can do so by passing an optional fourth argument to the autograder when 
+  you instantiate this class. 
   """
 
-  def __init__(self, solution_hash, student_info, options=None, cmd="scheme"):
+  def __init__(self, solution_hash, student_info, options="all", cmd="scheme"):
     """
     Initialize this object.
 
@@ -231,9 +246,15 @@ def main():
   if len(sys.argv) < 3:
     raise RuntimeError(
       """invalid number of arguments. 
-         Usage: <solution hash> <username/student_hash> <all|single-pass-name> [<test|scheme|haskell>])
+         Usage: <test_suite> <solution hash> <username/student_hash> [<all|single-pass-name>] [<test|scheme|haskell>])
       """)
-  grader = P423Grader(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4])
+  # ignoring argument 1 because it is the test suite which gets thrown away
+  if len(sys.argv) > 4:
+    grader = P423Grader(sys.argv[2],sys.argv[3],sys.argv[4])
+  else:
+    grader = P423Grader(sys.argv[2],sys.argv[3])
+    
+
   output = grader.grade()
   grader.cleanup()
 
