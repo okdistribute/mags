@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python
 import sys
 import os
 import shutil
@@ -231,9 +231,9 @@ def main():
   if len(sys.argv) < 3:
     raise RuntimeError(
       """invalid number of arguments. 
-         Usage: <solution hash> <username/student_hash> <all|single-pass-name> [<test|scheme|haskell>])
+         Usage: <test suite> <solution hash> <username/student_hash> <all|single-pass-name> [<test|scheme|haskell>])
       """)
-  grader = P423Grader(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4])
+  grader = P423Grader(sys.argv[2],sys.argv[3],sys.argv[4], sys.argv[5])
   output = grader.grade()
   grader.cleanup()
 
