@@ -12,6 +12,7 @@
  
 ⍝ Grade a single submission given:
 ⍝   owner submittedfor date
+⍝ The results are stored in the appropriate database row.
  Generate←{
      probs←⊂[1]AssignmentProblems 1⊃⍵
      code←StudentCode ⍵
@@ -22,6 +23,8 @@
 ⍝ Generates an XML report using the grader
 ⍝    Right: name grader testsuite solution grader_params
 ⍝    Left:  code
+⍝ If the running of the autograder command fails for some
+⍝ reason, then we report that as a single failed test.
  MkRep←{
      name grader suite sol param←⍵
      res←1 4⍴1 'test-group' '' (1 2⍴'name' name)
