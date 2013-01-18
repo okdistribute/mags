@@ -26,7 +26,9 @@
      name grader suite sol param←⍵
      res←1 4⍴1 'test-group' '' (1 2⍴'name' name)
      cmd←graders,⊃{⍺,' ',⍵}/grader suite sol ⍺ param
-     rep←1 ¯1↓⎕XML ⊃{⍺,(⎕UCS 10),⍵}/⎕SH cmd
+     fail_attrs←3 2⍴'name' 'Autograder Command' 'expected' 'pass' 'result' 'fail'
+     11::res⍪1 4⍴2 'test-result' '' fail_attrs
+     rep←1 ¯1↓⎕XML ⊃{⍺,(⎕UCS 10),⍵}/⎕←⎕SH cmd
      rep[;0]+←1
      res⍪rep
  }
