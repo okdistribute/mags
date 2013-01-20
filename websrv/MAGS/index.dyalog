@@ -123,7 +123,7 @@
 
 RenderContent←{
    ⍝ Right now we are just reading in a sample result file
-     xml←⎕XML ReadFile './sample_results.xml'
+     xml←⎕XML '<grading-results />'
    ⍝ 
    ⍝ getidx allows us to pass a character vector of a node 
    ⍝ name and get the indices of all those nodex in the 
