@@ -143,11 +143,32 @@
 ⍝ an extra link for submitting a new submission to a given assignment.
 
  InstAssignments←{
+    ⍝ We query the data first, which comes in the form of a matrix, 
+    ⍝ and then we return a blank vector if there is nothing to 
+    ⍝ work with. 
      dat←#.Database.InstructorSubmissions ⍵
      0=⊃⍴dat:''
-     GrpBy←{bv←1,2≢/⍵[;⍺] ⋄ (⊂¨bv/⍵[;⍺]),∘⊂¨bv⊂[1]⍵}
+    ⍝ 
+    ⍝ GrpBy takes in the matrix of query results 
+    ⍝ and groups these results based on a particular
+    ⍝ row. The row is given as the left argument, while
+    ⍝ the matrix is the right argument. The result is a vector
+    ⍝ of 2-vectors where the 1⊃ element is the character vector 
+    ⍝ of the unique item under which these elemeents are grouped
+    ⍝ and the 2⊃ element is the matrix of these elements.
+     GrpBy←{(⊂¨bv/dr),∘⊂¨(bv←1,2≢/dr←⍺⌷⍉d)⊂[1]d←⍵[⍋↑⍺⌷⍉⍵;]}
+    ⍝
+    ⍝ The Mk_ functions create the list elements either for the 
+    ⍝ set user links or the assignment grouping, depending on what 
+    ⍝ they are given. Each expects to receive the group name as the 
+    ⍝ left argument and the data in matrix form as the right argument.
      MkUsr←{⍺,List MkSubmissionLink¨⊂[2]⍵}
      MkAssgn←{⍺,List MkUsr/↑2 GrpBy ⍵}
+    ⍝
+    ⍝ Finally, we put a little header at the top of the top-level list 
+    ⍝ node. We start with grouping by the first column, which is the 
+    ⍝submission name, and MkAssgn groups by the second column, which 
+    ⍝ is the networkid or owner column.
      ('h3' Enclose 'Instructor'),List MkAssgn/↑1 GrpBy dat
  }
  
