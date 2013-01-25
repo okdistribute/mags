@@ -21,9 +21,15 @@
 ⍝ This field supports the Indiana University CAS authentication 
 ⍝ protocol. It contains a special validation string to identify 
 ⍝the user of the system if they have appropriately authenticated 
-⍝ to the CAS system.
+⍝ to the CAS system. The other three fields correspond to the natural
+⍝ key of a submission, which, if given, indicate the submission
+⍝ that is to be displayed to the user, if the proper authentication 
+⍝ is available.
 
 :Field Public casticket←''
+:Field Public submittedfor←''
+:Field Public owner←''
+:Field Public date←''
 
 ⍝ There are three main CASE urls that facilitate the authentication 
 ⍝ process. Firstly, the main redirect URL is the one to which we redirect 
@@ -108,10 +114,55 @@
 ⍝ assignment somewhere.
 
  RenderAssignments←{
-     asn←#.Database.StudentAssignments ⍵
-     suba subd←⊂[1]#.Database.StudentSubmissions ⍵
-     s4a←suba∘∊
-     'assignments'List{⍵,List((s4a⊂⍵)/subd),⊂'Submit New'}¨asn
+     inst←InstAssignments ⍵
+     stud←StudAssignments ⍵
+     'div id="assignments"' Enclose inst,stud
+ }
+ 
+⍝ The {Inst,Stud}Assignments functions achieve basically 
+⍝ the same thing but with different expectations. 
+⍝ The InstAssignments function renders the assignments 
+⍝ that the username given has access to as a teacher or 
+⍝ instructor, while the StudAssignments function does the 
+⍝ same treating the user given as a student instead of 
+⍝ an instructor. 
+⍝
+⍝ Both of these functions return a rendered HTML snippet.
+⍝ These functions return list nodes, where the depth of 
+⍝ the instructor list is three, while the listing depth of the 
+⍝ student is only two. The first depth is the list of assignments, 
+⍝and for the student assignments the second depth is the 
+⍝ submission date. For the instructor assignments the second 
+⍝ depth is the student, while the third depth is the submision 
+⍝ date. 
+⍝ 
+⍝ Each submission listed as a leaf node in this tree should 
+⍝ be a link to show the submission's grading report. This means 
+⍝ that it needs to pass the owner, date, and assignment information
+⍝ as url parameters to this page. The student listing should include
+⍝ an extra link for submitting a new submission to a given assignment.
+
+ InstAssignments←{
+     dat←#.Database.InstructorSubmissions ⍵
+     0=⊃⍴dat:''
+     GrpBy←{bv←1,2≢/⍵[;⍺] ⋄ (⊂¨bv/⍵[;⍺]),∘⊂¨bv⊂[1]⍵}
+     MkUsr←{⍺,List MkSubmissionLink¨⊂[2]⍵}
+     MkAssgn←{⍺,List MkUsr/↑2 GrpBy ⍵}
+     ('h3' Enclose 'Instructor'),List MkAssgn/↑1 GrpBy dat
+ }
+ 
+ StudAssignments←{
+     ''
+ }
+ 
+⍝ The following function helps to render the submission link
+⍝ given the owner, assignment, and date. It takes the depth 
+⍝ as the left argument and the owner, assignment, and date 
+⍝ as the right argument.
+
+ MkSubmissionLink←{
+      ⍺←0 ⋄ href←⊃,/'?submittedfor=' '&owner=' '&date=',¨⍵
+      'href' href #.HTML.a ⊃⌽⍵
  }
  
 ⍝ Rendering the content will depend on whether we have anything 
@@ -123,7 +174,7 @@
 
 RenderContent←{
    ⍝ Right now we are just reading in a sample result file
-     xml←⎕XML '<grading-results />'
+     xml←⎕XML ReadFile './sample_results.xml'
    ⍝ 
    ⍝ getidx allows us to pass a character vector of a node 
    ⍝ name and get the indices of all those nodex in the 

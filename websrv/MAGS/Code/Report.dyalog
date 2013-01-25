@@ -67,6 +67,10 @@
     ⍝ Test-results and test-groups should not have any CDATA
      ~∧/(⊂'')≡¨(⍵[;1]∊2↑vnds)/⍵[;2]:fail 
     ⍝
+    ⍝ There really should be a check here about the correct
+    ⍝ hierarchy, but I just haven't had the time to do it. 
+    ⍝ XXX
+    ⍝
     ⍝ Everything seems to have worked
      ⍵
  }

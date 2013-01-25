@@ -123,6 +123,8 @@
  InsertContains←{Do INSERT INTO 'contains(assignment, problem, number)' VALUES MkBVS ⍵}
  InsertMemberOf←{Do INSERT INTO 'memberof(group_name, student)' VALUES MkBVS ⍵}
  InsertBelongsTo←{Do INSERT INTO 'belongsto(group_name, assignment)' VALUES MkBVS ⍵}
+ InsertTeaches←{Do INSERT INTO 'teaches(group_name, teacher)' VALUES MkBVS ⍵}
+ InsertInstructor←{Do INSERT INTO 'instructors(networkid, firstname, lastname)' VALUES MkBVS⊂⍵}
 
 ⍝ The submissions table is slightly different in that we have two optional
 ⍝ fields that we can support. The isappeal and report fields are normally 
@@ -159,6 +161,16 @@
      bvs dat←(⊂'memberof.student = ')MkBVS ⊂⍵
      bvs,←⊂'belongsto.group_name = memberof.group_name'
      fromUTF8¨Do SELECT 'assignment' FROM 'belongsto, memberof' WHERE bvs dat 
+ }
+ 
+⍝ Right argument: networkid of instructor
+ InstructorSubmissions←{
+     flds←'submittedfor, owner, date'
+     tbls←'submissions, teaches, belongsto'
+     bvs dat←(⊂'teaches.teacher = ')MkBVS⊂⍵
+     bvs,←⊂'teaches.group_name = belongsto.group_name'
+     bvs,←⊂'belongsto.assignment = submissions.submittedfor'
+     fromUTF8¨Do SELECT flds FROM tbls WHERE bvs dat
  }
  
 ⍝ RightArgument: assignment_name
