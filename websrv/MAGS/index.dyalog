@@ -105,9 +105,10 @@
 ⍝ simply the username of the viewer and a logout link.
 
  RenderInfo←{
+     sp←'href' '#' #.HTML.a 'Submit an Assignment'
      z←BRA'Logged in as ',⍵,'.'
      z,←'href' CASLogoutURL #.HTML.a 'Logout'
-     'div id="info"'Enclose z
+     'div id="info"'Enclose⊃,/#.HTML.p¨sp z
  }
  
 ⍝ We want to render a nested list of the assignments and the  
