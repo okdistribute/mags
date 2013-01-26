@@ -129,8 +129,8 @@
     ⍝ We query the data first, which comes in the form of a matrix, 
     ⍝ and then we return a blank vector if there is nothing to 
     ⍝ work with. 
-     dat←#.Database.InstructorSubmissions ⍵
-     0=⊃⍴dat:''
+     dat←#.Database.Submissions ⍵
+     0=⊃⍴dat:'div id="assignments"' Enclose ''
     ⍝ 
     ⍝ GrpBy takes in the matrix of query results 
     ⍝ and groups these results based on a particular
