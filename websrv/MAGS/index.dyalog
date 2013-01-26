@@ -110,25 +110,8 @@
  
 ⍝ We want to render a nested list of the assignments and the  
 ⍝ submissions for each assignment made by the student. 
-⍝ We additionally want to put a submission button for each 
-⍝ assignment somewhere.
-
- RenderAssignments←{
-     inst←InstAssignments ⍵
-     stud←StudAssignments ⍵
-     'div id="assignments"' Enclose inst,stud
- }
- 
-⍝ The {Inst,Stud}Assignments functions achieve basically 
-⍝ the same thing but with different expectations. 
-⍝ The InstAssignments function renders the assignments 
-⍝ that the username given has access to as a teacher or 
-⍝ instructor, while the StudAssignments function does the 
-⍝ same treating the user given as a student instead of 
-⍝ an instructor. 
-⍝
-⍝ Both of these functions return a rendered HTML snippet.
-⍝ These functions return list nodes, where the depth of 
+⍝ We return a rendered HTML snippet.
+⍝ The result is a list of nodes, where the depth of 
 ⍝ the instructor list is three, while the listing depth of the 
 ⍝ student is only two. The first depth is the list of assignments, 
 ⍝and for the student assignments the second depth is the 
@@ -142,7 +125,7 @@
 ⍝ as url parameters to this page. The student listing should include
 ⍝ an extra link for submitting a new submission to a given assignment.
 
- InstAssignments←{
+ RenderAssignments←{
     ⍝ We query the data first, which comes in the form of a matrix, 
     ⍝ and then we return a blank vector if there is nothing to 
     ⍝ work with. 
@@ -151,9 +134,9 @@
     ⍝ 
     ⍝ GrpBy takes in the matrix of query results 
     ⍝ and groups these results based on a particular
-    ⍝ row. The row is given as the left argument, while
+    ⍝ column. The column is given as the left argument, while
     ⍝ the matrix is the right argument. The result is a vector
-    ⍝ of 2-vectors where the 1⊃ element is the character vector 
+    ⍝ of pairs where the 1⊃ element is the character vector 
     ⍝ of the unique item under which these elemeents are grouped
     ⍝ and the 2⊃ element is the matrix of these elements.
      GrpBy←{(⊂¨bv/dr),∘⊂¨(bv←1,2≢/dr←⍺⌷⍉d)⊂[1]d←⍵[⍋↑⍺⌷⍉⍵;]}
@@ -169,13 +152,11 @@
     ⍝ node. We start with grouping by the first column, which is the 
     ⍝submission name, and MkAssgn groups by the second column, which 
     ⍝ is the networkid or owner column.
-     ('h3' Enclose 'Instructor'),List MkAssgn/↑1 GrpBy dat
+     els←List MkAssgn/↑1 GrpBy dat
+     'div id="assignments"' Enclose els
  }
  
- StudAssignments←{
-     ''
- }
- 
+
 ⍝ The following function helps to render the submission link
 ⍝ given the owner, assignment, and date. It takes the depth 
 ⍝ as the left argument and the owner, assignment, and date 
