@@ -148,9 +148,9 @@
      fromUTF8¨Do SELECT 'submittedfor, date' FROM 'submissions' WHERE (⊂'owner = ')MkBVS⊂⍵
  }
 
-⍝ Right Argument: owner, assignment, date
+⍝ Right Argument: assignment, owner, date
  SubmissionReport←{
-     bvs dat←('owner' 'submittedfor',¨⊂' = ')MkBVS 2↑⍵
+     bvs dat←('submittedfor' 'owner',¨⊂' = ')MkBVS 2↑⍵
      bvs,←⊂'date = :<S:' ⋄ dat,←2↓⍵
      res←Do SELECT 'report' FROM 'submissions' WHERE bvs dat
      ⎕XML fromUTF8 ⊃res⍪' '
@@ -172,7 +172,7 @@
      q,←' and teaches.teacher = '
      bvs dat←q 'owner = 'MkBVS ⍵ ⍵
      bvs←{'(',⍺,') or ',⍵}/bvs
-     fromUTF8¨Do ⎕←SELECT flds FROM tbls WHERE bvs dat
+     fromUTF8¨Do SELECT flds FROM tbls WHERE bvs dat
  }
  
 ⍝ RightArgument: assignment_name

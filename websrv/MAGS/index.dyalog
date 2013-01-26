@@ -92,8 +92,10 @@
  →(⊃res usr←CASValidate req)/0
  bod←'h1'Enclose'MAGS: McKelvey Auto-Grading System'
  bod,←RenderInfo usr
- bod,←RenderAssignments usr
- bod,←RenderContent usr
+ dat←#.Database.Submissions usr
+ dat[;3]←ParseDate¨dat[;3]
+ bod,←RenderAssignments dat
+ bod,←RenderContent dat
  req.Return bod
  req.Title 'MAGS: McKelvey Auto-Grading System'
  req.Style 'index.css'
@@ -110,7 +112,11 @@
  
 ⍝ We want to render a nested list of the assignments and the  
 ⍝ submissions for each assignment made by the student. 
-⍝ We return a rendered HTML snippet.
+⍝ We return a rendered HTML snippet. We receive as input
+⍝ the result of the query for the submissions, which should 
+⍝ be a three column matrix where the first column is the 
+⍝ assignments, the second column the owner, and the 
+⍝ theird column the date in textual format.
 ⍝ The result is a list of nodes, where the depth of 
 ⍝ the instructor list is three, while the listing depth of the 
 ⍝ student is only two. The first depth is the list of assignments, 
@@ -129,8 +135,7 @@
     ⍝ We query the data first, which comes in the form of a matrix, 
     ⍝ and then we return a blank vector if there is nothing to 
     ⍝ work with. 
-     dat←#.Database.Submissions ⍵
-     0=⊃⍴dat:'div id="assignments"' Enclose ''
+     0=⊃⍴⍵:'div id="assignments"' Enclose ''
     ⍝ 
     ⍝ GrpBy takes in the matrix of query results 
     ⍝ and groups these results based on a particular
@@ -158,13 +163,36 @@
  
 
 ⍝ The following function helps to render the submission link
-⍝ given the owner, assignment, and date. It takes the depth 
-⍝ as the left argument and the owner, assignment, and date 
-⍝ as the right argument.
+⍝ given the owner, assignment, and date. It takes the 
+⍝ owner, assignment, and date as the right argument.
 
  MkSubmissionLink←{
-      ⍺←0 ⋄ href←⊃,/'?submittedfor=' '&owner=' '&date=',¨⍵
-      'href' href #.HTML.a ⊃⌽⍵
+      0=+/⊃⌽⍵: 'Invalid date'
+      href←⊃,/'?submittedfor=' '&owner=' '&date=',¨(2↑⍵),⊂⍕⊃⌽⍵
+      'href' href #.HTML.a RenderDate ⊃⌽⍵
+ }
+ 
+⍝ The date format is a little funny. The following functions 
+⍝ allow us to parse the date format that we receive from 
+⍝ the input and make sure that the input we have received is
+⍝ valid.
+
+ ⍝ Date Format: YYYY-MM-DD HH:MM:SS
+ ParseDate←{
+     bad←7⍴0 ⋄ 2≠+/'-'=⍵:bad ⋄ 2≠+/':'=⍵:bad ⋄ 1≠+/' '=⍵:bad
+     ~∧/'0123456789'∊⍨⍵/⍨~bv←⍵∊'-: ':bad
+     0,⍨⍎¨1↓¨(1,bv)⊂' ',⍵
+ }
+ 
+ ⍝ Date Format: Y M D H M S MS
+ ExtractDate←{
+     ~∧/⍵∊'0123456789 ':7⍴0 ⋄ 6≠+/' '=⍵:7⍴0 ⋄ 7↑⍎⍵
+ }
+ 
+ ⍝ Convert back to Database format
+ RenderDate←{
+     y mo d h mi s ms←⍕¨⍵
+     y,'-',mo,'-',d,' ',h,':',mi,':',s
  }
  
 ⍝ Rendering the content will depend on whether we have anything 
@@ -175,8 +203,18 @@
 ⍝ creates another level of nesting in the unordered list.
 
  RenderContent←{
-    ⍝ Right now we are just reading in a sample result file
-     xml←⎕XML ReadFile './sample_results.xml'
+    ⍝
+    ⍝ We should first verify that the user has the right to 
+    ⍝ access the information, which means that we need to check 
+    ⍝ that the data is available in the result query, which we
+    ⍝ are given as the input right argument.
+     sod←submittedfor owner (ExtractDate date)
+     ⎕THIS.(submittedfor owner date)←⊂''
+     ∨/(⊂'')≡¨2↑sod:'div id="content"'Enclose'Select an assignment.'
+     0=+/⊃⌽sod:'div id="content"'Enclose'Select an assignment.'
+     (⎕IO+⊃⍴⍵)=⊃(⊂[2]⍵)⍳⊂sod:'div id="content"'Enclose'Access denied.'
+     xml←#.Database.SubmissionReport sod
+     0=⊃⍴xml:'div id="content"'Enclose'No report found.'
     ⍝ 
     ⍝ getidx allows us to pass a character vector of a node 
     ⍝ name and get the indices of all those nodex in the 
@@ -212,8 +250,8 @@
     ⍝ These two functions help us extract the name and 
     ⍝ whether or not the test was passed when given an attribute 
     ⍝ matrix.
-     getname←{⊃(⍵[;1]∊⊂'name')/⍵[;2]}
-     getpass←{⊃≡/(⍵[;1]∊'result' 'expected')/⍵[;2]}
+     getname←{0≡⍵:⍬ ⋄ ⊃(⍵[;1]∊⊂'name')/⍵[;2]}
+     getpass←{0≡⍵:⍬ ⋄ ⊃≡/(⍵[;1]∊'result' 'expected')/⍵[;2]}
     ⍝
     ⍝ The group character values will just be the names of 
     ⍝ the groups.
@@ -238,7 +276,10 @@
      res[(1+ngi),ngi,nri;1]←xml[gi,gi,ri;1]+(1+sgi),sgi,sri
     ⍝
     ⍝ Finally this is all boxed up into a content div.
-     'div id="content"'Enclose ⎕XML res
+     p←'Results for ',(1⊃sod),' submitted by ',2⊃sod
+     p,←' on ',RenderDate 3⊃sod
+     p←#.HTML.p p
+     'div id="content"'Enclose p,⎕XML res
  }
  
 ⍝This is a simple functin to read in a UTF-8 file.

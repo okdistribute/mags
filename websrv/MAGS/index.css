@@ -18,14 +18,6 @@ body {
   padding-left: 0.8em;
 }
 
-#assignments li ul {
-  display: none;
-}
-
-#assignments li:hover ul {
-  display: block;
-}
-
 h1 {
   background-color: #7d110c;
   color: white;
