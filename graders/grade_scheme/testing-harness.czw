@@ -1,6 +1,6 @@
-\def\title{SCHEME AUTOGRADER (VERSION 3.0)}
+\def\title{TEST SUITE ENVIRONMENT (VERSION 3.0)}
 \def\topofcontents{\null\vfill
-  \centerline{\titlefont Scheme Autograder}
+  \centerline{\titlefont Testing Harness Environment}
   \vskip 15pt
   \centerline{(Version 3.0)}
   \vfill}
@@ -30,6 +30,7 @@ PERFORMANCE OF THIS SOFTWARE.
 which is used to evaluate and load test-suites. The basic environment 
 can be described by the following library declaration. (XXX: This thing
 needs a whole lot more documentations!)
+
 
 @(testing-harness.sls@>=
 (library (mags autograder grade_scheme testing-harness)
