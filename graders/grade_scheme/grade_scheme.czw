@@ -45,7 +45,7 @@ not rely on or use this interface for other purposes. The syntax is as follows:
 
 \medskip\verbatim
 (with-time-limit seconds handler-thunk proc-thunk)
-!endverbatim
+!endverbatim\medskip
 
 \noindent The |proc-thunk| is evaluated with a time limit, and a signal handler
 is registered before executing |proc-thunk| that will call the |handler-thunk|
