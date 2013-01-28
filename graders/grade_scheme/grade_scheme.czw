@@ -37,19 +37,43 @@ syntax is as follows:
 grade_scheme : <test-suite> <solution> <submission>
 !endverbatim\medskip
 
-This behavior is wrapped up into a shell script that does the 
+This behavior is wrapped up into a small script that does the 
 appropriate calls.
 
 @(grade_scheme@>=
 #!/usr/bin/env scheme-script
 (import (chezscheme))
-(load (format "~a/~a" (path-parent (car (command-line))) "grade_scheme.so"))
+(load 
+  (format "~a/~a" 
+          (path-parent (car (command-line))) 
+          "grade_scheme.so"))
+
+@ The main |library-group| form is what contains the actual program 
+organization. We have one main library that must be made available 
+as a library, and the rest is included in this document and used 
+as the main body of the program.
 
 @(grade_scheme.sps@>=
 (library-group
   ;(include "testing-harness.sls")
   (import (chezscheme))
   (include "grade_scheme.ss"))
+  
+@ The expectation is that the |test-suite|, |solution|, and 
+|submission| arguments given to the |grade_scheme| script will all
+be paths to files that contain the appropriate programs. The 
+|test-suite| is the main testing code which will be run inside of 
+the testing harness environment (which is why we need the testing 
+harness as a separate library), and it may or may not use the 
+|solution| code that is provided. The |submission| code that is 
+given in the file will be the user submitted code and gets evaluated 
+in its own environment. 
+
+The primary job of this program is to setup the environments, 
+paths, and other things necessary to run the test-suite effectively. 
+It's also important that we make sure to obey the API defined by 
+the MAGS Autograder API. More information on this particular API 
+can be found by reading the developer documentation.
   
 @p
 (printf "Hello world!~n")
