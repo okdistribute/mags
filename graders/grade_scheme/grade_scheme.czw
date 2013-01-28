@@ -9,7 +9,8 @@
 Copyright $\copyright$ 2012 
 Aaron W. Hsu $\.{arcfide@@sacrideo.us}$,
 Karissa R. McKelvey $\.{krmckelv@@indiana.edu}$,
-Josh Cox $\.{joshcox@indiana.edu|$
+Josh Cox $\.{joshcox@@indiana.edu}$,
+Michael DeWitt $\.{midewitt@@indiana.edu}$
 \smallskip\noindent
 Permission to use, copy, modify, and distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -53,6 +54,8 @@ if the execution time exceeds the time limit.
   ($alarm seconds)
   (proc-thunk))
 
+  
+  
 @* Creating Sandboxes.
 @* Creating new Equality testers.
 As discussed earlier, there are times when you may want to test for an ADT
