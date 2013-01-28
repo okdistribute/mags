@@ -1,0 +1,59 @@
+\def\title{SCHEME AUTOGRADER (VERSION 3.0)}
+\def\topofcontents{\null\vfill
+  \centerline{\titlefont Scheme Autograder}
+  \vskip 15pt
+  \centerline{(Version 3.0)}
+  \vfill}
+\def\botofcontents{\vfill
+\noindent
+Copyright $\copyright$ 2012 
+Aaron W. Hsu $\.{arcfide@@sacrideo.us}$,
+Karissa R. McKelvey $\.{krmckelv@@indiana.edu}$,
+Josh Cox $\.{joshcox@@indiana.edu}$,
+Michael DeWitt $\.{midewitt@@indiana.edu}$
+\smallskip\noindent
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+\smallskip\noindent
+THE SOFTWARE IS PROVIDED ``AS IS'' AND THE AUTHOR DISCLAIMS ALL
+WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+}
+
+@* Introduction. This file describes the testing harness environment
+which is used to evaluate and load test-suites. The basic environment 
+can be described by the following library declaration. (XXX: This thing
+needs a whole lot more documentations!)
+
+@(testing-harness.sls@>=
+(library (mags autograder grade_scheme testing-harness)
+  (export 
+    test-suite
+    test-group
+    test-assert
+    test-equal
+    test-set
+    test-eqv
+    test-eq
+    test-approx
+    test-load
+    test-begin test-end
+    test-entry
+    define-equality-test
+    current-time-limit
+    define-from-submission
+    numeric numeric->roman-lower-case numeric->roman-upper-case
+    alphabetic-lower-case alphabetic-upper-case
+    separator
+    formatters)
+  (import (chezscheme))
+  (include "testing-harness.ss"))
+    
+
+@* Index.

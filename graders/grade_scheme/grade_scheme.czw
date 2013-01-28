@@ -32,7 +32,17 @@ PERFORMANCE OF THIS SOFTWARE.
 @<Load shared libraries@>
 @<Time Limiting Procedure@>
 
-@* Command-line Program.
+@* Command-line Program. 
+
+\medskip\verbatim
+grade_scheme : <test-suite> <solution> <submission>
+!endverbatim\medskip
+
+@(grade_scheme.sps@>=
+(library-group
+  (include "testing-harness.sls")
+  (import (chezscheme))
+  (include "grade_scheme.ss"))
 
 @* Implementation.
 
