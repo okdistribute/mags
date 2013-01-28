@@ -26,19 +26,33 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 }
 
-@* Introduction.
-
-@* Command-line Program. 
+@* Introduction. This is the main command line program for the 
+Scheme autograder. It works as a single |library-group| that 
+imports and makes available all of the helper libraries that 
+we might want to use. It is mean to be compiled into a single
+object file that will be run using |petite|. This command line
+syntax is as follows:
 
 \medskip\verbatim
 grade_scheme : <test-suite> <solution> <submission>
 !endverbatim\medskip
 
+This behavior is wrapped up into a shell script that does the 
+appropriate calls.
+
+@(grade_scheme@>=
+#!/usr/bin/env scheme-script
+(import (chezscheme))
+(load (format "~a/~a" (path-parent (car (command-line))) "grade_scheme.so"))
+
 @(grade_scheme.sps@>=
 (library-group
-  (include "testing-harness.sls")
+  ;(include "testing-harness.sls")
   (import (chezscheme))
   (include "grade_scheme.ss"))
+  
+@p
+(printf "Hello world!~n")
 
 @* Implementation.
 
