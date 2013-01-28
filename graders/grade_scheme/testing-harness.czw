@@ -55,6 +55,41 @@ needs a whole lot more documentations!)
     formatters)
   (import (chezscheme))
   (include "testing-harness.ss"))
-    
+
+@* Time limiting evaluation.
+This section defines |with-time-limit|, a procedure that evaluates thunk,
+using a low-level timer to limit the execution time. It is meant to be safe for
+use with all standard (non-FFI) Scheme forms, including engines. It uses Chez
+Scheme's low-level signal handling interface, so code using this form should
+not rely on or use this interface for other purposes. The syntax is as follows:
+
+\medskip\verbatim
+(with-time-limit seconds handler-thunk proc-thunk)
+!endverbatim\medskip
+
+\noindent The |proc-thunk| is evaluated with a time limit, and a signal handler
+is registered before executing |proc-thunk| that will call the |handler-thunk|
+if the execution time exceeds the time limit and return the value returned by 
+the |handler-thunk|.
+
+@c () => (with-time-limit)
+@<Time Limiting Procedure@>=
+(define signal/alarm 14) ; Magic constant 14 from signal.h
+(define $alarm (foreign-procedure "alarm" (unsigned-int) unsigned-int))
+(define (with-time-limit seconds handler-thunk proc-thunk)
+  (call-with-current-continuation 
+    (lambda (return)
+      (register-signal-handler signal/alarm (lambda (x) (return (handler-thunk))))
+      ($alarm seconds)
+      (proc-thunk))))
+  
+@ The above code relies on the foreign |alarm(2)| function which we import
+from the standard C library.
+
+@c () => ()
+@<Load shared libraries@>=
+(load-shared-object "libc.so.6")
+  
+
 
 @* Index.
