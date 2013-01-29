@@ -86,6 +86,9 @@
 ⍝ inline. Our Render method thus looks pretty simple. We 
 ⍝ need to do any validation first, and if the validation 
 ⍝ succeeds, then we render the main page. 
+⍝
+⍝ We also have a simple dialog that allows for the submission 
+⍝ of new assignments. 
  
 ∇Render req;res;usr;grp;bod;tmp
  :Access Public
@@ -93,19 +96,22 @@
  bod←'h1'Enclose'MAGS: McKelvey Auto-Grading System'
  bod,←RenderInfo usr
  dat←#.Database.Submissions usr
- dat[;3]←ParseDate¨dat[;3]
  bod,←RenderAssignments dat
+ bod,←RenderSubmitDialog usr
  bod,←RenderContent dat
  req.Return bod
  req.Title 'MAGS: McKelvey Auto-Grading System'
  req.Style 'index.css'
+ req.Use 'JQuery'
+ 'src="index.js"' req.Script ''
 ∇
 
 ⍝ The information that we render in the information panel is 
 ⍝ simply the username of the viewer and a logout link.
 
  RenderInfo←{
-     sp←'href' '#' #.HTML.a 'Submit an Assignment'
+     ⍝ sp←'href' '#' #.HTML.a 'Submit an Assignment'
+     sp←''
      z←BRA'Logged in as ',⍵,'.'
      z,←'href' CASLogoutURL #.HTML.a 'Logout'
      'div id="info"'Enclose⊃,/#.HTML.p¨sp z
@@ -178,13 +184,6 @@
 ⍝ the input and make sure that the input we have received is
 ⍝ valid.
 
- ⍝ Date Format: YYYY-MM-DD HH:MM:SS
- ParseDate←{
-     bad←7⍴0 ⋄ 2≠+/'-'=⍵:bad ⋄ 2≠+/':'=⍵:bad ⋄ 1≠+/' '=⍵:bad
-     ~∧/'0123456789'∊⍨⍵/⍨~bv←⍵∊'-: ':bad
-     0,⍨⍎¨1↓¨(1,bv)⊂' ',⍵
- }
- 
  ⍝ Date Format: Y M D H M S MS
  ExtractDate←{
      ~∧/⍵∊'0123456789 ':7⍴0 ⋄ 6≠+/' '=⍵:7⍴0 ⋄ 7↑⍎⍵
@@ -204,16 +203,30 @@
 ⍝ creates another level of nesting in the unordered list.
 
  RenderContent←{
+    ⍝ 
+    ⍝ When we receive in the information, we want to get the 
+    ⍝ value of the fields and then quickly reset them so that 
+    ⍝ they do not persist from one instance to the other.
+    ⍝ The ⎕THIS is required to ensure that we are referring 
+    ⍝ to the fields and not to a new internal binding.
+     sod←submittedfor owner (ExtractDate date)
+     ⎕THIS.(submittedfor owner date)←⊂''
+    ⍝ 
+    ⍝ In the case where we don't have all of the data, we will 
+    ⍝ just give a simple message asking the user to select an
+    ⍝ assignment.
+     ∨/(⊂'')≡¨2↑sod:'div id="content"'Enclose'Select an assignment.'
+     0=+/⊃⌽sod:'div id="content"'Enclose'Select an assignment.'
     ⍝
-    ⍝ We should first verify that the user has the right to 
+    ⍝ We should verify that the user has the right to 
     ⍝ access the information, which means that we need to check 
     ⍝ that the data is available in the result query, which we
     ⍝ are given as the input right argument.
-     sod←submittedfor owner (ExtractDate date)
-     ⎕THIS.(submittedfor owner date)←⊂''
-     ∨/(⊂'')≡¨2↑sod:'div id="content"'Enclose'Select an assignment.'
-     0=+/⊃⌽sod:'div id="content"'Enclose'Select an assignment.'
      (⎕IO+⊃⍴⍵)=⊃(⊂[2]⍵)⍳⊂sod:'div id="content"'Enclose'Access denied.'
+    ⍝ 
+    ⍝ If we do have access, we should then try to get the report
+    ⍝ information and error out if we cannot find any of the 
+    ⍝ report information for the student.
      xml←#.Database.SubmissionReport sod
      0=⊃⍴xml:'div id="content"'Enclose'No report found.'
     ⍝ 
@@ -281,6 +294,19 @@
      p,←' on ',RenderDate 3⊃sod
      p←#.HTML.p p
      'div id="content"'Enclose p,⎕XML res
+ }
+ 
+⍝ The submission dialog needs to present the assignment 
+⍝ list as a pull down box for submission as well as a 
+⍝ field for the submission hash or file.
+
+ RenderSubmitDialog←{
+     html←'Submit assignment: '
+     assgns←#.Database.StudentAssignments ⍵
+     html,←'assignment' DropDown assgns (⊃assgns)
+     html,←'code' Edit ⍬
+     html,←'submit' Submit 'Submit'
+     'div id="submit_dialog"'Enclose html
  }
  
 ⍝This is a simple functin to read in a UTF-8 file.

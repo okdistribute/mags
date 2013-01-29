@@ -165,14 +165,15 @@
  
 ⍝ Right argument: networkid of instructor
  Submissions←{
-     flds←'submittedfor, owner, date'
+     flds←'submittedfor, owner, :date>S:'
      tbls←'submissions, teaches, belongsto'
      q←'submissions.submittedfor = belongsto.assignment'
      q,←' and belongsto.group_name = teaches.group_name'
      q,←' and teaches.teacher = '
      bvs dat←q 'owner = 'MkBVS ⍵ ⍵
      bvs←{'(',⍺,') or ',⍵}/bvs
-     fromUTF8¨Do SELECT flds FROM tbls WHERE bvs dat
+     res←Do SELECT flds FROM tbls WHERE bvs dat
+     res⊣res[;⍳2]←fromUTF8¨res[;⍳2]
  }
  
 ⍝ RightArgument: assignment_name
