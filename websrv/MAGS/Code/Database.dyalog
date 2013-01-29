@@ -124,7 +124,7 @@
  InsertMemberOf←{Do INSERT INTO 'memberof(group_name, student)' VALUES MkBVS ⍵}
  InsertBelongsTo←{Do INSERT INTO 'belongsto(group_name, assignment)' VALUES MkBVS ⍵}
  InsertTeaches←{Do INSERT INTO 'teaches(group_name, teacher)' VALUES MkBVS ⍵}
- InsertInstructor←{Do INSERT INTO 'instructors(networkid, firstname, lastname)' VALUES MkBVS⊂⍵}
+ InsertInstructor←{Do INSERT INTO 'instructors(networkid, firstname, lastname)' VALUES MkBVS ⍵}
 
 ⍝ The submissions table is slightly different in that we have two optional
 ⍝ fields that we can support. The isappeal and report fields are normally 
