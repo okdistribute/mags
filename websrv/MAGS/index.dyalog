@@ -40,10 +40,11 @@
 ⍝ an user who wishes to logout. This logout is not necessarily secure, 
 ⍝ and closing the browser is the only sure way to truly logout.
 
+ Address←#.Boot.ms.Config.Address
  CASRedirectURL←'https://cas.iu.edu/cas/login?cassvc=IU&casurl='
- CASRedirectURL,←'http://localhost:8080/'
+ CASRedirectURL,←Address
  CASValidateURL←'https://cas.iu.edu/cas/validate?cassvc=IU&'
- CASValidateURL,←'casurl=http://localhost:8080/&'
+ CASValidateURL,←'casurl=',Address,'&'
  CASValidateURL,←'casticket='
  CASLogoutURL←'https://cas.iu.edu/cas/logout'
 
