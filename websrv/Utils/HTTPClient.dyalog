@@ -1,7 +1,7 @@
 ﻿:Namespace HTTPClient
 ⍝ === VARIABLES ===
 
-NL←(⎕ucs 13 10)
+NL←⎕ucs 10
 
 _←⍬
 _,←'# This file contains port numbers for well-known services defined by IANA' (,'#') '# Format:' (,'#')

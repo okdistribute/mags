@@ -266,12 +266,11 @@ $$\vbox{
     \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
     {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
     \noalign{\hrule}    
-    submissionid & Serial (Integer) & --- \cr
     owner  & ---  & {\tt Submitter.networkid} \cr
     submittedfor  & ---  & {\tt Assignment.name} \cr
     date  & Date  & --- \cr
     isappeal  & Boolean  & --- \cr
-    code  & Variable String  & --- \cr
+    code  & Variable Bytes  & --- \cr
     report  & XML  & --- \cr
   }
 }$$
@@ -311,7 +310,6 @@ $$\vbox{
     \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
     {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
     \noalign{\hrule}
-    deadlineid & Serial (Integer) & --- \cr
     type  & Variable String  & --- \cr
     date  & Date  & --- \cr
   }
@@ -426,7 +424,8 @@ $$\vbox{
     {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
     \noalign{\hrule}    
     assignment  & ---  & {\tt Assignment.name} \cr
-    deadline & --- & {\tt Deadline.deadlineid} \cr
+    type & --- & {\tt Deadline.type} \cr
+    date & --- & {\tt Deadline.date} \cr
   }
 }$$
 
@@ -483,13 +482,15 @@ $$\vbox{
     \strut \quad {\tt #}  & \vrule\quad #  & \vrule\quad # \cr
     {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
     \noalign{\hrule}   
-    submission & --- & {\tt Submission.submissionid} \cr 
+    owner & --- & {\tt Submission.owner} \cr
+    assignment & --- & {\tt Submission.submittedfor} \cr
+    date & --- & {\tt Submission.date} \cr
     collaborator  & ---  & {\tt Submitter.networkid} \cr
   }
 }$$
 
 {\noindent
-Natural Key: {\tt submission}, {\tt collaborator}\par}
+Natural Key: {\tt owner}, {\tt assignment}, {\tt date}, {\tt collaborator}\par}
 
 \subsection{CommentsOn Relation}
 An instructor comments on a submission by taking a comment 
@@ -508,7 +509,9 @@ $$\vbox{
     {\bf Field Name}  & {\bf Type}  & {\bf Foreign Key}\cr
     \noalign{\hrule}    
     comment  & ---  & {\tt Comment.text} \cr
-    submission & --- & {\tt Submission.submissionid} \cr
+    owner & --- & {\tt Submission.owner} \cr
+    assignment & --- & {\tt Submission.submittedfor} \cr
+    date & --- & {\tt Submission.date} \cr
     problem  & ---  & {\tt Problem.name} \cr
     start  & Int  & --- \cr
     end  & Int  & --- \cr
@@ -516,7 +519,7 @@ $$\vbox{
 }$$
 
 {\noindent
-Natural Key: {\tt comment}, {\tt submission}, 
+Natural Key: {\tt comment}, {\tt owner}, {\tt assignment}, {\tt date}, 
 {\tt problem}, {\tt start}, {\tt end}\par}
 
 \section{Web Services}
@@ -558,8 +561,8 @@ instance of the auto-grader is called. In particular, each problem in an
 assignment will spawn one instance of the auto-grader. Each invocation is 
 expected to be referentially transparent, meaning that multiple runs of an 
 auto-grader with the same arguments should produce the same output. One should 
-not rely on hidden state to get reasonable results. The pattern fo arguments
-looks like this:
+not rely on hidden state to get reasonable results. The arguments look
+like this:
 
 \medskip\verbatim
 <grader> : test-suite solution submission [extra ...]

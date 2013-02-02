@@ -6,9 +6,16 @@ body {
 #assignments {
   float: left;
   margin: 0em 2em 0em 0em; margin-top: 0;
-  padding: 1em;
   background-color: #f8f3d2;
   list-style: none;
+  width: 20%;
+  padding: 1em;
+}
+
+#assignments ul {
+  list-style: none;
+  margin: 0em 0em 0em 0em; margin-top: 0;
+  padding-left: 0.8em;
 }
 
 h1 {
@@ -19,5 +26,15 @@ h1 {
 
 #info {
   float: right;
-  margin: 0em 0em 0em 2em;
+  margin: 0em 1em 0em 2em;
+}
+
+#content {
+  margin-top: 1em;
+  margin-left: 23%;
+}
+
+#content ul { 
+  list-style: none; 
+  padding-left: 1em;
 }

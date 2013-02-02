@@ -280,7 +280,7 @@ def main():
     
 
   output = grader.grade()
-  # grader.cleanup()
+  grader.cleanup()
 
 # call
 if __name__ == "__main__":
