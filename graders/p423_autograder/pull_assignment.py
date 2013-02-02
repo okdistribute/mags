@@ -2,6 +2,10 @@
 import sys
 import os
 import subprocess
+import smtplib
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE
+
 
 class AssignmentPuller:
   """
@@ -48,9 +52,6 @@ class AssignmentPuller:
     RETURNS: a filename with the location of the username/hash associations.
 
     """
-    if not os.path.exists(self.assignment):
-      os.mkdir(self.assignment)
-    out = open(hashes,"w")
     hash = None
     cwd = os.getcwd()
   
@@ -58,11 +59,11 @@ class AssignmentPuller:
     # reset the seek. We may have already read the file once, or partially.
     self.usernames.seek(0)
 
-    # pull each repository and write its hash out to the output file
+    # pull each repository and write its hash out 
     for username in self.usernames:
       username = username.strip()
-      os.system("git clone git@github.iu.edu:p423-523-sp13/"+username+".git")
-      os.system("git checkout " + self.assignment)
+      os.system("git clone git@github.iu.edu:p423-523-sp13/"+username+".git > /dev/null 2>&1")
+      os.system("git checkout " + self.assignment+ " > /dev/null 2>&1")
       os.chdir(username)
   
       # grab the revision from HEAD
@@ -89,8 +90,27 @@ class AssignmentPuller:
   
       os.chdir(cwd)
   
-    out.close()
-    return hashes
+    return self.hashes
+
+  def notify_of_pull(self,recipients):
+    success = "".join(self.hashes)
+    failed  = "".join(self.failed_hashes)
+    msg_body = "This is an automatically generated message and is for safety backups only.\n"
+    msg_body += "--------- GOT HASHES FROM ------------\n"
+    msg_body += success
+    msg_body += "---------FAILED TO GET FROM ------------"
+    msg_body += failed
+
+    msg = MIMEText(msg_body)
+
+    sender = 'p423@cs.indiana.edu'
+    msg['Subject'] = 'P423 pulled assignment: %s' % self.assignment
+    msg['From'] = sender
+    msg['To'] = COMMASPACE.join(recipients)
+
+    smtp = smtplib.SMTP('cs.indiana.edu')
+    smtp.sendmail(sender, recipients, msg.as_string())
+
 
   def delete_repos(self):
     """
@@ -114,9 +134,18 @@ def main():
 
   assignment = sys.argv[1]
   usernames  = open(sys.argv[2])
+  recipients = ['czakian@indiana.edu','relarson@indiana.edu', 'awhsu@indiana.edu', 'rrnewton@indiana.edu']
   puller = AssignmentPuller(assignment,usernames)
   puller.delete_repos()
   puller.pull_assignment()
+  print("--------- GOT HASHES FROM ------------")
+  for hash in puller.hashes:
+    print(hash)
+  print("---------FAILED TO GET FROM ------------")
+  for hash in puller.failed_hashes:
+    print(hash)
+  if len(sys.argv) > 3 and sys.argv[3] == '--notify':
+    puller.notify_of_pull(recipients)
   puller.delete_repos()
   
 

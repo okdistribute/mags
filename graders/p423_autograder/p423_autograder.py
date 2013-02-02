@@ -6,6 +6,7 @@ import subprocess
 import fcntl
 import select
 import signal
+import time
 
 
 class P423Grader:
@@ -18,9 +19,24 @@ class P423Grader:
   We only handle one student at a time in this class.
   for a script to loop over multiple students, see the 
   test_runner.py script in the same directory. 
+
+  This script assumes that you have a makefile which runs
+  a test suite and returns xml output corresponding to the
+  xml schema given in the mags developer docs. 
+
+  The general workflow for a grading run is to instantiate 
+  this script with a test suite (ignored) a solution hash to a git repository,
+  a username, github hash pair of the student delimited by "/". E.g. "jsmith/2341341a$2341".
+
+  The script will pull the solution repository, the students repository, and then copy
+  over the whole "Compiler" or "CompileHs" directory into the solution repository and 
+  invoke the makefile from there. We assume that the makefile commands are "make scheme"
+  and "make haskell" respectively. If you would like to run a different command, 
+  you can do so by passing an optional fourth argument to the autograder when 
+  you instantiate this class. 
   """
 
-  def __init__(self, solution_hash, student_info, options=None, cmd="scheme"):
+  def __init__(self, solution_hash, student_info, options="all", cmd="scheme-xml"):
     """
     Initialize this object.
 
@@ -88,6 +104,7 @@ class P423Grader:
       print("caught an exception in grading: " + self.username + " user could not be graded")
       return None
 
+
   def __do_grade_all(self):
     """
     Performs the action of cloning the student's repository and 
@@ -115,24 +132,46 @@ class P423Grader:
      return report
 
     cwd = os.getcwd()
-    src = cwd+"/"+self.username+"/"+self.sdir
-    dest = cwd+"/"+self.framework+"/"+self.sdir
+
+    srcS = cwd+"/"+self.username+"/"+self.sdir
+    destS = cwd+"/"+self.framework+"/"+self.sdir
+
+    srcH  = cwd+"/"+self.username+"/"+self.hdir
+    destH = cwd+"/"+self.framework+"/"+self.hdir
+
+    src = None
+    dest = None
+
+    #  select the directory with the most files,
+    #  as that is probably a pretty good indication
+    #  which language they are using.
+    if len(os.listdir(srcS)) > len(os.listdir(srcH)):
+      self.cmd = 'scheme-xml'
+      src = srcS
+      dest = destS
+    else:
+      self.cmd = 'haskell-xml'
+      src = srcH
+      dest = destH
 
     try:
+      os.system("rm -rf " + dest)
       self.copytree(src, dest)
     except:
-      try:
-        self.cmd = 'haskell'
-        src = cwd+"/"+self.username+"/"+self.hdir
-        dest = cwd+"/"+self.framework+"/"+self.hdir
-      except: 
-        raise RuntimeError("No valide compiler directories found")
+      raise RuntimeError("No valid compiler directories found")
 
     os.chdir(cwd+"/"+self.framework)
 
     # start up the scheme process by calling the makefile in the framework repository
+
+    # a dirty little hack to get around the fact that we have to call the 
+    # makefile twice in haskell. once for the compile, which we toss out.
+    # and then one more time below to capture the actual output
+
+    # this is where we capture the actual output
     p = subprocess.Popen(
            ["make", self.cmd], 
+           bufsize=64,
            stdout=subprocess.PIPE, 
            stderr=subprocess.PIPE, 
            stdin=subprocess.PIPE
@@ -212,7 +251,7 @@ class P423Grader:
     """
     A custom copytree method (same as shutil.copytree) but without
     the requirement that the directory not exist
-    this was taking from a stack overflow article
+    this was taken from a stack overflow article
 
     """
     if not os.path.exists(dst):
@@ -231,9 +270,15 @@ def main():
   if len(sys.argv) < 3:
     raise RuntimeError(
       """invalid number of arguments. 
-         Usage: <test suite> <solution hash> <username/student_hash> <all|single-pass-name> [<test|scheme|haskell>])
+         Usage: <test_suite> <solution hash> <username/student_hash> [<all|single-pass-name>] [<test|scheme|haskell>])
       """)
-  grader = P423Grader(sys.argv[2],sys.argv[3],sys.argv[4], sys.argv[5])
+  # ignoring argument 1 because it is the test suite which gets thrown away
+  if len(sys.argv) > 4:
+    grader = P423Grader(sys.argv[2],sys.argv[3],sys.argv[4])
+  else:
+    grader = P423Grader(sys.argv[2],sys.argv[3])
+    
+
   output = grader.grade()
   grader.cleanup()
 

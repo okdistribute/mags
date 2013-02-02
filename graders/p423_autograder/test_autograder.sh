@@ -3,11 +3,11 @@
 #AUTHOR: Christopher Zakian | czakian@indiana.edu
 #a small testing script for trying out and individual student on the autograder
 
-stu_hash=6671953a66c6873c0440afc161448071409a400f
-username=zgoldman
-sol_hash=cd0a1a256b283013fe899c664277de03fb684316
-opts=all
-cmd=scheme-xml
+stu_hash=864376186e9f5809d9d4dae40975ced395cc881a
+#stu_hash=7dceea5112c5d98300ccab213279a6bc8488009a
+username=eamsden
+sol_hash=68460cc3b09b3cd59b20074fd6010757956d35c0
+#sol_hash=7ee3bf7fff71f2fa0d1919ef60ea9b73bef219b5
 
-./p423_autograder.py N/A $sol_hash $username/$stu_hash $opts $cmd 
+./p423_autograder.py "test_suite" $sol_hash $username/$stu_hash
 
