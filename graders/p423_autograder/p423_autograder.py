@@ -6,6 +6,7 @@ import subprocess
 import fcntl
 import select
 import signal
+import time
 
 
 class P423Grader:
@@ -35,7 +36,7 @@ class P423Grader:
   you instantiate this class. 
   """
 
-  def __init__(self, solution_hash, student_info, options="all", cmd="scheme"):
+  def __init__(self, solution_hash, student_info, options="all", cmd="scheme-xml"):
     """
     Initialize this object.
 
@@ -103,6 +104,7 @@ class P423Grader:
       print("caught an exception in grading: " + self.username + " user could not be graded")
       return None
 
+
   def __do_grade_all(self):
     """
     Performs the action of cloning the student's repository and 
@@ -130,24 +132,46 @@ class P423Grader:
      return report
 
     cwd = os.getcwd()
-    src = cwd+"/"+self.username+"/"+self.sdir
-    dest = cwd+"/"+self.framework+"/"+self.sdir
+
+    srcS = cwd+"/"+self.username+"/"+self.sdir
+    destS = cwd+"/"+self.framework+"/"+self.sdir
+
+    srcH  = cwd+"/"+self.username+"/"+self.hdir
+    destH = cwd+"/"+self.framework+"/"+self.hdir
+
+    src = None
+    dest = None
+
+    #  select the directory with the most files,
+    #  as that is probably a pretty good indication
+    #  which language they are using.
+    if len(os.listdir(srcS)) > len(os.listdir(srcH)):
+      self.cmd = 'scheme-xml'
+      src = srcS
+      dest = destS
+    else:
+      self.cmd = 'haskell-xml'
+      src = srcH
+      dest = destH
 
     try:
+      os.system("rm -rf " + dest)
       self.copytree(src, dest)
     except:
-      try:
-        self.cmd = 'haskell'
-        src = cwd+"/"+self.username+"/"+self.hdir
-        dest = cwd+"/"+self.framework+"/"+self.hdir
-      except: 
-        raise RuntimeError("No valide compiler directories found")
+      raise RuntimeError("No valid compiler directories found")
 
     os.chdir(cwd+"/"+self.framework)
 
     # start up the scheme process by calling the makefile in the framework repository
+
+    # a dirty little hack to get around the fact that we have to call the 
+    # makefile twice in haskell. once for the compile, which we toss out.
+    # and then one more time below to capture the actual output
+
+    # this is where we capture the actual output
     p = subprocess.Popen(
            ["make", self.cmd], 
+           bufsize=64,
            stdout=subprocess.PIPE, 
            stderr=subprocess.PIPE, 
            stdin=subprocess.PIPE
@@ -227,7 +251,7 @@ class P423Grader:
     """
     A custom copytree method (same as shutil.copytree) but without
     the requirement that the directory not exist
-    this was taking from a stack overflow article
+    this was taken from a stack overflow article
 
     """
     if not os.path.exists(dst):
@@ -256,7 +280,7 @@ def main():
     
 
   output = grader.grade()
-  grader.cleanup()
+  # grader.cleanup()
 
 # call
 if __name__ == "__main__":
