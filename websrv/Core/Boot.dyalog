@@ -188,7 +188,7 @@
      
           :Trap 0
               :If 0=#.⎕NC'SQA'
-                  'SQA'#.⎕CY'SQAPL' ⍝ copy in SQA
+                  'SQA'#.⎕CY'sqapl' ⍝ copy in SQA
               :EndIf
               ⍝ This line seems to mess things up on Linux
               ⍝ :If 0≠1⊃#.SQA.Init'' ⍝ and initialize
